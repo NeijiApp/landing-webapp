@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "~/utils/supabase/client";
 
@@ -15,9 +15,9 @@ import { AuthInput } from "./_components/auth-input";
 function AuthLogic() {
 	const router = useRouter();
 	const supabase = createClient();
-	const [authStep, setAuthStep] = useState<
-		"welcome" | "email" | "password" | "signup" | "email-sent"
-	>("email");
+    const [authStep, setAuthStep] = useState<
+        "welcome" | "email" | "password" | "signup"
+    >("welcome");
 	const [authData, setAuthData] = useState({
 		email: "",
 		password: "",
@@ -36,8 +36,8 @@ function AuthLogic() {
 		{
 			id: "auth-welcome",
 			role: "assistant" as const,
-			content:
-				"Hello! I'm Neiji, your meditation assistant. To access all features, please provide your email address to sign in.",
+            content:
+                "Would you like to create an account or do you already have one? You can also connect with Google.",
 		},
 	]);
 
@@ -73,7 +73,20 @@ function AuthLogic() {
 		};
 		setAuthMessages((prev) => [...prev, newMessage]);
 		return newMessage;
-	}; // Fonction pour détecter si l'utilisateur veut se connecter
+    };
+    const params = useSearchParams();
+    const selectedMode = (params.get("mode") as "login" | "signup") ?? null;
+
+    useEffect(() => {
+        if (selectedMode === "login") {
+            setAuthStep("email");
+            addMessage("assistant", "Great, let's sign you in. What's your email?");
+        } else if (selectedMode === "signup") {
+            setAuthStep("email");
+            addMessage("assistant", "Let's create your account. What's your email?");
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedMode]);
 	const detectPositiveResponse = (input: string): boolean => {
 		const normalizedInput = input.toLowerCase().trim();
 		console.log("✅ === DEBUG DETECTION POSITIVE ===");
@@ -367,60 +380,13 @@ function AuthLogic() {
 		console.log("🔍 === FIN DEBUG COMPLET ===");
 
 		try {
-			if (authStep === "welcome") {
-				// Tests ultra-simples en premier
-				if (normalizedInput === "non") {
-					console.log(
-						'🎯 DETECTION DIRECTE: "non" trouvé - redirection immédiate',
-					);
-					addMessage(
-						"assistant",
-						"Very well! I'm redirecting you to the main chat. See you soon! 👋",
-					);
-					setTimeout(() => {
-						router.push("/chat");
-					}, 2000);
-					return;
-				}
-
-				if (
-					normalizedInput === "oui" ||
-					normalizedInput === "ouais" ||
-					normalizedInput === "ouai"
-				) {
-					console.log(
-						"🎯 DETECTION DIRECTE: réponse positive trouvée - passage à email",
-					);
-					addMessage("assistant", "Perfect! What is your email address?");
-					setAuthStep("email");
-					return;
-				}
-
-				// Puis les détections normales
-				if (isNegative) {
-					console.log(
-						"✅ NEGATIVE détecté par fonction - redirection vers chat",
-					);
-					addMessage(
-						"assistant",
-						"Very well! I'm redirecting you to the main chat. See you soon! 👋",
-					);
-					setTimeout(() => {
-						router.push("/chat");
-					}, 2000);
-					return;
-				} else if (isPositive) {
-					console.log("✅ POSITIVE détecté par fonction - passage à email");
-					addMessage("assistant", "Perfect! What is your email address?");
-					setAuthStep("email");
-				} else {
-					console.log("❓ NEITHER détecté - demande clarification");
-					addMessage(
-						"assistant",
-						'I didn\'t understand your response. Would you like to sign in? Please provide your email address to continue, or type "no" to continue as a guest.',
-					);
-				}
-			} else if (authStep === "email") {
+            if (authStep === "welcome") {
+                addMessage(
+                    "assistant",
+                    "Tap the drawer button below to choose Sign up, Log in, or Google. Or type your email to continue.",
+                );
+                setAuthStep("email");
+            } else if (authStep === "email") {
 				const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 				if (!emailRegex.test(input)) {
 					addMessage(
@@ -431,37 +397,16 @@ function AuthLogic() {
 				}
 				setAuthData((prev) => ({ ...prev, email: input }));
 
-				// Vérifier si l'utilisateur existe dans la table users_table
-				console.log("🔍 Recherche utilisateur pour email:", input);
-				const { data: existingUser, error: dbError } = await supabase
-					.from("users_table")
-					.select("email")
-					.eq("email", input)
-					.single();
-
-				console.log("🔍 Résultat recherche:", { existingUser, dbError });
-
-				if (existingUser) {
-					// Utilisateur existant trouvé dans la base de données
-					console.log("✅ Utilisateur existant trouvé");
-					setAuthData((prev) => ({ ...prev, isExistingUser: true }));
-					addMessage(
-						"assistant",
-						`Hello! I recognize you. What is your password?`,
-					);
-					setAuthStep("password");
-				} else {
-					// Utilisateur non trouvé dans la base de données
-					console.log(
-						"❌ Utilisateur non trouvé, création d'un nouveau compte",
-					);
-					setAuthData((prev) => ({ ...prev, isExistingUser: false }));
-					addMessage(
-						"assistant",
-						`I don't know you yet! Let's create your account. Choose a secure password (at least 8 characters with letters and numbers).`,
-					);
-					setAuthStep("signup");
-				}
+                if (selectedMode === "login") {
+                    addMessage("assistant", "Thanks. What's your password?");
+                    setAuthStep("password");
+                } else {
+                    addMessage(
+                        "assistant",
+                        "Great. Choose a secure password (at least 8 characters with letters and numbers).",
+                    );
+                    setAuthStep("signup");
+                }
 			} else if (authStep === "password") {
 				const { error } = await supabase.auth.signInWithPassword({
 					email: authData.email,
@@ -471,16 +416,17 @@ function AuthLogic() {
 				if (error) {
 					addMessage(
 						"assistant",
-						"Oops! This password doesn't match. Can you try again?",
+                        "We couldn’t sign you in. Check your email or password and try again.",
 					);
 				} else {
+                    await createUserProfile(authData.email);
 					addMessage(
 						"assistant",
 						"Perfect! Login successful. Welcome to your personal space! 🎉",
 					);
-					setTimeout(() => {
-						router.push("/protected/chat");
-					}, 2000);
+                    setTimeout(() => {
+                        router.push("/protected/chat");
+                    }, 1000);
 				}
 			} else if (authStep === "signup") {
 				if (input.length < 8) {
@@ -506,36 +452,17 @@ function AuthLogic() {
 				if (error) {
 					addMessage(
 						"assistant",
-						`Désolé, il y a eu un problème : ${error.message}. Pouvez-vous réessayer ?`,
+                        `Sorry, something went wrong: ${error.message}`,
 					);
 				} else {
-					// Créer le profil utilisateur dans la table users_table
-					console.log(
-						"✅ Inscription réussie, création du profil pour:",
-						authData.email,
-					);
                     await createUserProfile(authData.email);
-
-					// Passer à l'état "email envoyé"
-					setAuthStep("email-sent");
-
-					// Message pour demander de vérifier l'email
-					addMessage(
-						"assistant",
-						"Perfect! Your account has been created successfully! 🎉",
-					);
-					setTimeout(() => {
-						addMessage(
-							"assistant",
-							`A confirmation email has been sent to ${authData.email}. Please click the link in the email to activate your account and access the chat! 📧`,
-						);
-					}, 1500);
-					setTimeout(() => {
-						addMessage(
-							"assistant",
-							"Une fois votre email confirmé, vous pourrez profiter de toutes les fonctionnalités de méditation personnalisées ! ✨",
-						);
-					}, 3000);
+                    addMessage(
+                        "assistant",
+                        "Your account is ready! Redirecting…",
+                    );
+                    setTimeout(() => {
+                        router.push("/protected/chat");
+                    }, 1000);
 				}
 			}
 		} catch (error) {
@@ -579,88 +506,23 @@ function AuthLogic() {
 				)}
 			</div>
 
-			{/* Message d'aide pour l'email de confirmation */}
-            {authStep === "email-sent" && (
-				<div className="container mx-auto px-4 pb-4">
-					<div className="rounded-lg border border-orange-200 bg-orange-100 p-4 text-center">
-						<p className="text-orange-800 text-sm">
-							Didn't receive the email? Check your spam folder or{" "}
-							<button
-								onClick={async () => {
-									const { error } = await supabase.auth.resend({
-										type: "signup",
-										email: authData.email,
-									});
-									if (!error) {
-																			addMessage(
-										"assistant",
-										"Confirmation email resent! 📧",
-									);
-									}
-								}}
-								className="text-orange-600 underline hover:text-orange-700"
-							>
-								click here to resend it
-							</button>
-						</p>
-                        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-                            <a
-                                href="https://mail.google.com"
-                                target="_blank"
-                                rel="noreferrer"
-                                className="rounded-full bg-white px-3 py-1 text-sm text-orange-700 shadow-sm hover:bg-orange-50"
-                            >
-                                Open Gmail
-                            </a>
-                            <a
-                                href="https://outlook.office.com/mail/"
-                                target="_blank"
-                                rel="noreferrer"
-                                className="rounded-full bg-white px-3 py-1 text-sm text-orange-700 shadow-sm hover:bg-orange-50"
-                            >
-                                Open Outlook
-                            </a>
-                            <a
-                                href="https://mail.yahoo.com"
-                                target="_blank"
-                                rel="noreferrer"
-                                className="rounded-full bg-white px-3 py-1 text-sm text-orange-700 shadow-sm hover:bg-orange-50"
-                            >
-                                Open Yahoo Mail
-                            </a>
-                            <a
-                                href="https://www.icloud.com/mail/"
-                                target="_blank"
-                                rel="noreferrer"
-                                className="rounded-full bg-white px-3 py-1 text-sm text-orange-700 shadow-sm hover:bg-orange-50"
-                            >
-                                Open iCloud Mail
-                            </a>
-                        </div>
-                        <div className="mt-3 text-xs text-orange-700">
-                            You can continue browsing; your access will unlock once you click the link in your email.
-                        </div>
-					</div>
-				</div>
-			)}
+			{/* No email confirmation step needed */}
 
 			{/* AuthInput remplace ChatInput */}
 			<AuthInput
 				onSend={handleUserInput}
-				disabled={isLoading || authStep === "email-sent"}
+				disabled={isLoading}
 				isPassword={authStep === "password" || authStep === "signup"}
 				placeholder={
 					authStep === "welcome"
-						? "Type 'yes' to sign in..."
+						? "Use the buttons above or type your email..."
 						: authStep === "email"
 							? "Your email address..."
 							: authStep === "password"
 								? "Your password..."
 								: authStep === "signup"
 									? "Choose a password..."
-									: authStep === "email-sent"
-										? "Check your emails to continue..."
-										: "Type your message..."
+									: "Type your message..."
 				}
 				onFocus={() => {
 					if (authMessages.length === 1) {

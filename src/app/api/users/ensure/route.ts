@@ -2,12 +2,13 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "~/utils/supabase/admin";
+import { createClient as createSSRClient } from "~/utils/supabase/server";
 import { z } from "zod";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const schema = z.object({ email: z.string().email() });
+    const body = await request.json().catch(() => ({}));
+    const schema = z.object({ email: z.string().email().optional() });
     const parse = schema.safeParse(body);
     if (!parse.success) {
       return NextResponse.json(
@@ -28,18 +29,31 @@ export async function POST(request: Request) {
     }
 
     try {
+      const supabaseSSR = await createSSRClient();
+      const { data: { user } } = await supabaseSSR.auth.getUser();
+
+      const payload: Record<string, unknown> = {
+        memory_L0: "",
+        memory_L1: "",
+        memory_L2: "",
+        questionnaire: {},
+      };
+
+      if (user) {
+        payload.email = user.email;
+        payload.auth_user_id = user.id;
+      } else if (email) {
+        payload.email = email;
+      } else {
+        return NextResponse.json(
+          { error: "No email or authenticated user provided" },
+          { status: 400 },
+        );
+      }
+
       const { error } = await supabase
         .from("users_table")
-        .upsert(
-          {
-            email,
-            memory_L0: "",
-            memory_L1: "",
-            memory_L2: "",
-            questionnaire: {},
-          },
-          { onConflict: "email" },
-        );
+        .upsert(payload, { onConflict: "email" });
 
       if (error) {
         return NextResponse.json(

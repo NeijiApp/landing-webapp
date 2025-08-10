@@ -106,7 +106,7 @@ export function ChatInput({ onChatFocus }: ChatInputProps) {
     }
   };
 
-  const finalHandleSubmit = meditationMode ? handleMeditationSubmitFromInput : handleSubmit;
+  const finalHandleSubmit = meditationMode === "meditation" ? handleMeditationSubmitFromInput : handleSubmit;
 
   return (
     <>
@@ -119,7 +119,11 @@ export function ChatInput({ onChatFocus }: ChatInputProps) {
       <div
         className={cn(
           "fixed right-1/2 bottom-[92px] z-5 w-full max-w-xl translate-x-1/2 transition-all duration-300 ease-in-out",
-          meditationMode ? (isExpanded ? "h-[min(70dvh,calc(100dvh-140px))]" : "h-[min(45dvh,calc(100dvh-140px))]") : "h-0",
+          meditationMode === "meditation"
+            ? isExpanded
+              ? "h-[min(70dvh,calc(100dvh-140px))]"
+              : "h-[min(45dvh,calc(100dvh-140px))]"
+            : "h-0",
         )}
       >
         <div className="h-full overflow-hidden">
@@ -133,10 +137,10 @@ export function ChatInput({ onChatFocus }: ChatInputProps) {
         <div className="rounded-t-2xl bg-white/85 p-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-lg backdrop-blur-md md:p-4">
           <div className="flex items-center gap-3">
             <div className="group relative">
-              <Button onClick={() => { setMeditationMode(meditationMode === "meditation" ? "chat" : "meditation"); if (meditationMode === "meditation") setIsExpanded(false); }} size="icon" variant={meditationMode ? "orange" : "orangeOutline"} className="size-12 rounded-full">
-                <Brain className={cn("transition-all duration-300", meditationMode ? "size-7" : "size-6")} />
+              <Button onClick={() => { setMeditationMode(meditationMode === "meditation" ? "chat" : "meditation"); if (meditationMode === "meditation") setIsExpanded(false); }} size="icon" variant={meditationMode === "meditation" ? "orange" : "orangeOutline"} className="size-12 rounded-full">
+                <Brain className={cn("transition-all duration-300", meditationMode === "meditation" ? "size-7" : "size-6")} />
               </Button>
-              {meditationMode && (
+              {meditationMode === "meditation" && (
                 <div className="absolute -right-1 -top-1 size-4 rounded-full border-2 border-white bg-orange-400">
                   <div className="size-full animate-pulse rounded-full bg-orange-300/70" />
                 </div>
@@ -156,7 +160,13 @@ export function ChatInput({ onChatFocus }: ChatInputProps) {
                   }
                 }}
                 onFocus={onChatFocus}
-                placeholder={meditationMode ? "Describe your meditation..." : messages.length === 0 ? "Ask Neiji" : "Message"}
+                placeholder={
+                  meditationMode === "meditation"
+                    ? "Describe your meditation..."
+                    : messages.length === 0
+                      ? "Ask Neiji"
+                      : "Message"
+                }
                 className="h-12 w-full rounded-full border-orange-200 bg-white/80 pl-6 pr-14 text-base transition-all focus:bg-white focus:ring-2 focus:ring-orange-300"
               />
 
@@ -167,7 +177,7 @@ export function ChatInput({ onChatFocus }: ChatInputProps) {
                   </Button>
                 ) : (
                   <Button type="submit" size="icon" variant="orange" className="size-9 rounded-full" disabled={!input.trim()}>
-                    {meditationMode ? <Sparkles className="size-5" /> : <SendHorizonal className="size-5" />}
+                    {meditationMode === "meditation" ? <Sparkles className="size-5" /> : <SendHorizonal className="size-5" />}
                   </Button>
                 )}
               </div>

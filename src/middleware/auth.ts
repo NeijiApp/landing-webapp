@@ -14,8 +14,7 @@ const PROTECTED_ROUTES = [
 
 const PUBLIC_ROUTES = [
   '/',
-  '/auth/login',
-  '/auth/signup',
+  '/auth',
   '/auth/callback',
   '/api/auth',
 ];
@@ -122,7 +121,7 @@ export async function authMiddleware(request: NextRequest) {
         );
       }
       
-      const redirectUrl = new URL('/auth/login', request.url);
+      const redirectUrl = new URL('/auth', request.url);
       redirectUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(redirectUrl);
     }
