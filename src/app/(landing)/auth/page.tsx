@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "~/utils/supabase/client";
+import { generateStableId } from "~/lib/utils/stable-id";
 
 import { BotMessage } from "../chat/_components/bot-message";
 import { Chat } from "../chat/_components/chat";
@@ -65,24 +66,27 @@ function AuthLogic() {
 		};
 	}, [isLoading]);
 
-	const addMessage = (role: "user" | "assistant", content: string) => {
-		const newMessage = {
-			id: `auth-${authMessages.length}-${role}-${Date.now()}`,
-			role,
-			content,
-		};
-		setAuthMessages((prev) => [...prev, newMessage]);
-		return newMessage;
+    const addMessage = (role: "user" | "assistant", content: string) => {
+        const newMessage = {
+            id: generateStableId("auth"),
+            role,
+            content,
+        };
+        setAuthMessages((prev) => [...prev, newMessage]);
+        return newMessage;
     };
     const params = useSearchParams();
     const selectedMode = (params.get("mode") as "login" | "signup") ?? null;
 
+    const handledModeRef = useRef<string | null>(null);
     useEffect(() => {
+        if (!selectedMode) return;
+        if (handledModeRef.current === selectedMode) return; // avoid double-run in StrictMode
+        handledModeRef.current = selectedMode;
+        setAuthStep("email");
         if (selectedMode === "login") {
-            setAuthStep("email");
             addMessage("assistant", "Great, let's sign you in. What's your email?");
         } else if (selectedMode === "signup") {
-            setAuthStep("email");
             addMessage("assistant", "Let's create your account. What's your email?");
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -313,23 +317,31 @@ function AuthLogic() {
 	 *
 	 * @param email - Email de l'utilisateur pour lequel créer le profil
 	 * @returns Promise<void>
-     */ const createUserProfile = async (email: string) => {
+     */     const createUserProfile = async (email: string) => {
         try {
-            console.log("🔄 Ensure user profile for:", email);
             const res = await fetch("/api/users/ensure", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),
+                credentials: "include",
             });
             if (!res.ok) {
-                const payload = await res.json().catch(() => ({}));
-                console.error("❌ Erreur lors de l'ensure du profil:", payload);
+                // Try to read JSON; if not JSON, read text for better diagnostics
+                let errorBody: unknown = null;
+                try {
+                    errorBody = await res.clone().json();
+                } catch {
+                    try {
+                        errorBody = await res.text();
+                    } catch {
+                        errorBody = null;
+                    }
+                }
+                console.error("❌ Erreur lors de l'ensure du profil:", errorBody);
                 addMessage(
                     "assistant",
                     "We could not finalize your profile automatically. You can still use the chat, and your profile will be created after your first login.",
                 );
-            } else {
-                console.log("✅ Profil utilisateur présent pour:", email);
             }
         } catch (err) {
             console.error("❌ Erreur ensure profil:", err);
@@ -416,17 +428,25 @@ function AuthLogic() {
 				if (error) {
 					addMessage(
 						"assistant",
-                        "We couldn’t sign you in. Check your email or password and try again.",
+                        "We couldn't sign you in. Check your email or password and try again.",
 					);
 				} else {
-                    await createUserProfile(authData.email);
-					addMessage(
-						"assistant",
-						"Perfect! Login successful. Welcome to your personal space! 🎉",
-					);
-                    setTimeout(() => {
-                        router.push("/protected/chat");
-                    }, 1000);
+                    addMessage(
+                        "assistant",
+                        "Welcome back! Setting up your session...",
+                    );
+                    
+                    // Wait for the session to be properly established
+                    setTimeout(async () => {
+                        await createUserProfile(authData.email);
+                        addMessage(
+                            "assistant",
+                            "Perfect! Login successful. Welcome to your personal space! 🎉",
+                        );
+                        setTimeout(() => {
+                            router.push("/protected/chat");
+                        }, 1000);
+                    }, 500);
 				}
 			} else if (authStep === "signup") {
 				if (input.length < 8) {
@@ -455,13 +475,22 @@ function AuthLogic() {
                         `Sorry, something went wrong: ${error.message}`,
 					);
 				} else {
-                    await createUserProfile(authData.email);
+                    // Wait a moment for session to be established, then create profile
                     addMessage(
                         "assistant",
-                        "Your account is ready! Redirecting…",
+                        "Account created successfully! Setting up your profile...",
                     );
-                    setTimeout(() => {
-                        router.push("/protected/chat");
+                    
+                    // Wait for the session to be properly established
+                    setTimeout(async () => {
+                        await createUserProfile(authData.email);
+                        addMessage(
+                            "assistant",
+                            "Your account is ready! Redirecting…",
+                        );
+                        setTimeout(() => {
+                            router.push("/protected/chat");
+                        }, 1000);
                     }, 1000);
 				}
 			}

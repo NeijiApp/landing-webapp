@@ -10,37 +10,26 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     const schema = z.object({ email: z.string().email().optional() });
     const parse = schema.safeParse(body);
-    if (!parse.success) {
-      return NextResponse.json(
-        { error: "Invalid payload", details: parse.error.flatten() },
-        { status: 400 },
-      );
-    }
-    const { email } = parse.data;
+    const email = parse.success ? parse.data.email : undefined;
 
-    let supabase;
+    // Try to initialize admin client, but allow fallback to SSR client if missing SERVICE_ROLE
+    let supabaseAdmin: ReturnType<typeof createAdminClient> | null = null;
     try {
-      supabase = createAdminClient();
+      supabaseAdmin = createAdminClient();
     } catch (e: any) {
-      return NextResponse.json(
-        { error: "Admin client init failed", details: e?.message },
-        { status: 500 },
-      );
+      // Continue without admin; we'll use SSR client instead
     }
 
     try {
       const supabaseSSR = await createSSRClient();
-      const { data: { user } } = await supabaseSSR.auth.getUser();
+      const { data: { user }, error: authError } = await supabaseSSR.auth.getUser();
 
-      const payload: Record<string, unknown> = {
-        memory_L0: "",
-        memory_L1: "",
-        memory_L2: "",
-        questionnaire: {},
-      };
+      // Create payload with only columns that definitely exist
+      const payload: Record<string, unknown> = {};
 
       if (user) {
         payload.email = user.email;
+        // Try to add auth_user_id if the column exists
         payload.auth_user_id = user.id;
       } else if (email) {
         payload.email = email;
@@ -51,9 +40,38 @@ export async function POST(request: Request) {
         );
       }
 
-      const { error } = await supabase
+      // Add default values for user profile columns
+      payload.memory_L0 = "";
+      payload.memory_L1 = "";
+      payload.memory_L2 = "";
+      payload.questionnaire = {};
+
+      // Choose DB client: admin preferred, fallback to SSR client
+      const dbClient = supabaseAdmin ?? supabaseSSR;
+
+      // First attempt with full payload
+      let { error } = await dbClient
         .from("users_table")
         .upsert(payload, { onConflict: "email" });
+
+      // Fallback: if any column doesn't exist, retry with minimal payload
+      if (error && typeof error.message === "string") {
+        const errorMsg = error.message.toLowerCase();
+        if (errorMsg.includes("column") || errorMsg.includes("does not exist")) {
+          // Create minimal payload with only guaranteed columns (id + email)
+          const minimalPayload: Record<string, unknown> = {};
+          if (user) {
+            minimalPayload.email = user.email;
+          } else if (email) {
+            minimalPayload.email = email;
+          }
+          
+          const retry = await dbClient
+            .from("users_table")
+            .upsert(minimalPayload, { onConflict: "email" });
+          error = retry.error ?? null;
+        }
+      }
 
       if (error) {
         return NextResponse.json(

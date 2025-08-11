@@ -103,52 +103,60 @@ export default function ProfilePage() {
 					data: { user },
 					error: userError,
 				} = await supabase.auth.getUser();
-				if (userError || !user || !user.email) {
-					router.push("/auth/login");
+                if (userError || !user || !user.email) {
+                    router.push("/auth");
 					return;
 				}
 
 				// Récupération des données utilisateur
-				const { data, error } = await supabase
+                const { data, error } = await supabase
 					.from("users_table")
 					.select("email, questionnaire")
 					.eq("email", user.email)
-					.single();
+                    .maybeSingle();
 
-				if (error) {
-					console.error("Erreur lors du chargement du profil:", error); // Si l'utilisateur n'existe pas dans la table (PGRST116), rediriger vers questionnaire
-					if (error.code === "PGRST116") {
-						router.push("/protected/questionnaire");
-						return;
-					}
-					// Pour les autres erreurs, créer un profil basique
-					setProfileData({ email: user.email });
-				} else if (data) {
+                if (error) {
+                    // Ne pas logguer bruyamment les erreurs "aucune ligne" ; rediriger simplement
+                    if ((error as any)?.code === "PGRST116") {
+                        router.push("/protected/questionnaire");
+                        return;
+                    }
+                    // Log plus informatif sans afficher un objet vide
+                    console.error(
+                        "Erreur lors du chargement du profil:",
+                        (error as any)?.code ?? null,
+                        (error as any)?.message ?? null,
+                    );
+                    // Pour les autres erreurs, créer un profil basique
+                    setProfileData({ email: user.email });
+                } else if (!data) {
+                    // Aucun enregistrement pour cet utilisateur
+                    router.push("/protected/questionnaire");
+                    return;
+                				} else {
 					setProfileData(data);
 
 					// Si pas de questionnaire ou objet vide, rediriger vers questionnaire
-					if (
-						!data.questionnaire ||
-						Object.keys(data.questionnaire).length === 0
-					) {
+                    const questionnaireValue = data.questionnaire as unknown;
+                    if (
+                        !questionnaireValue ||
+                        (typeof questionnaireValue === "object" &&
+                            Object.keys(questionnaireValue as Record<string, unknown>).length === 0)
+                    ) {
 						router.push("/protected/questionnaire");
 						return;
-					} // Parser la string JSON en objet
-					let parsedAnswers = data.questionnaire;
-					if (typeof data.questionnaire === "string") {
-						try {
-							parsedAnswers = JSON.parse(data.questionnaire);
-						} catch (e) {
-							console.error("Erreur lors du parsing du questionnaire:", e);
-							parsedAnswers = {};
-						}
-					}
+                    }
+                    // Parser la string JSON en objet si nécessaire
+                    let parsedAnswers: any = questionnaireValue;
+                    if (typeof questionnaireValue === "string") {
+                        try {
+                            parsedAnswers = JSON.parse(questionnaireValue);
+                        } catch {
+                            parsedAnswers = {};
+                        }
+                    }
 
 					setAnswers(parsedAnswers);
-				} else {
-					// Aucune donnée trouvée, rediriger vers questionnaire
-					router.push("/protected/questionnaire");
-					return;
 				}
 			} catch (err) {
 				console.error("Erreur:", err);
