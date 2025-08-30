@@ -21,6 +21,7 @@ export async function generateConcatenatedMeditation(
 	segments: Segment[],
 	voiceId?: string,
 	voiceGender?: "male" | "female",
+	voiceStyle?: string,
 ): Promise<ReadableStream<Uint8Array>> {
 	// Répertoire temporaire pour cette requête
 	const tempDir = await mkdtemp(join(tmpdir(), "meditation-"));
@@ -33,7 +34,7 @@ export async function generateConcatenatedMeditation(
 			const stream = await generateParagraphAudioWithRouter(seg.content, {
 				voice_id: voiceId!,
 				voice_gender: voiceGender,
-				voice_style: "calm",
+				voice_style: voiceStyle || "calm",
 			});
 			// Lire le flux et écrire en fichier
 			const buffer = await new Response(stream).arrayBuffer();

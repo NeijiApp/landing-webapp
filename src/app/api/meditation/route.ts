@@ -4,7 +4,7 @@ export const runtime = "nodejs";
 import { z } from "zod";
 import { env } from "~/env";
 import { generateConcatenatedMeditation } from "~/lib/meditation/generate-concatenated-meditation";
-import { meditationPromptParser } from "~/lib/meditation/meditation-prompt-parser";
+import { llmParameterParser } from "~/lib/meditation/llm-parameter-parser";
 import { meditationArchitect } from "~/lib/meditation/meditation-architect";
 
 const meditationSchema = z.object({
@@ -61,24 +61,86 @@ export async function POST(request: NextRequest) {
       `🧘 Starting AI-driven meditation generation: ${duration}min, goal: ${goal}, voice: ${voiceId}, background: ${background}, guidance: ${guidance}`,
     );
 
-    // Parse user prompt with AI-driven intelligence
-    console.log('🧠 Parsing user prompt with AI intelligence...');
-    const specification = await meditationPromptParser.parsePrompt(prompt, {
-      inferredDuration: duration,
+    // Parse user input with LLM if there's meaningful content
+    let finalParams = {
+      duration,
+      goal,
+      voiceGender: gender,
+      voiceStyle: 'calm',
       guidanceLevel: guidance,
-      goal: goal,
       background: background,
+    };
+    let parsedInfo = null;
+    let overrides: string[] = [];
+
+    const hasUserInput = prompt.trim().length > 0 && prompt.toLowerCase() !== 'meditation';
+    
+    if (hasUserInput) {
+      console.log('🤖 Parsing user input with LLM...');
+      
+      const parsed = await llmParameterParser.parseUserInput(prompt);
+
+      if (parsed.confidence > 0.2) { // Use intelligent inferences, even if confidence is moderate
+        const mergeResult = llmParameterParser.mergeWithDefaults(parsed, {
+          duration,
+          goal,
+          voiceGender: gender,
+          guidance,
+          background,
+        });
+        
+        finalParams = mergeResult.finalParams;
+        overrides = mergeResult.overrides;
+        parsedInfo = parsed;
+        
+        console.log('✅ LLM parsing applied:', {
+          overrides,
+          confidence: parsed.confidence,
+          detectedParams: parsed.detectedParams
+        });
+      } else {
+        console.log('⚠️ LLM parsing confidence too low, using defaults (confidence:', parsed.confidence, ')');
+      }
+    } else {
+      console.log('📝 No meaningful user input, using explicit parameters');
+    }
+
+    // Create meditation specification
+    const specification = {
+      originalPrompt: prompt,
+      intent: parsedInfo?.reasoning || `${finalParams.goal} meditation`,
+      inferredDuration: finalParams.duration,
+      guidanceLevel: finalParams.guidanceLevel as 'beginner' | 'confirmed' | 'expert',
+      goal: finalParams.goal as 'calm' | 'focus' | 'sleep' | 'energy' | 'healing' | 'stress' | 'anxiety',
+      mood: 'neutral',
+      background: finalParams.background as 'silence' | 'nature' | 'ambient' | 'waves' | 'rain' | 'focus' | 'relax',
       voicePreferences: {
-        gender: gender,
-        style: 'calm',
+        gender: finalParams.voiceGender,
+        style: finalParams.voiceStyle as 'calm' | 'energetic' | 'soothing' | 'focused',
       },
-    });
+      constraints: {
+        maxSilence: finalParams.guidanceLevel === 'expert' ? 0.7 : finalParams.guidanceLevel === 'beginner' ? 0.3 : 0.5,
+        breathingStyle: 'natural' as const,
+        instructionDensity: 'moderate' as const,
+        pacePreference: 'medium' as const,
+      },
+      personalContext: {
+        timeOfDay: 'afternoon' as const,
+        energyLevel: 'medium' as const,
+        stressLevel: 'medium' as const,
+        experience: 'regular' as const,
+      },
+    };
 
     console.log('✅ Meditation specification created:');
     console.log(`   Goal: ${specification.goal}`);
     console.log(`   Duration: ${specification.inferredDuration}min`);
     console.log(`   Guidance: ${specification.guidanceLevel}`);
+    console.log(`   Voice: ${specification.voicePreferences.gender} (${specification.voicePreferences.style})`);
     console.log(`   Intent: ${specification.intent}`);
+    if (overrides.length > 0) {
+      console.log(`   🎯 User overrides: ${overrides.join(', ')}`);
+    }
 
     // Generate meditation plan with AI architect
     console.log('🏗️ Creating meditation plan with AI architect...');
@@ -113,17 +175,23 @@ export async function POST(request: NextRequest) {
 
     console.log(`🔧 Prepared ${assemblySegments.length} segments for assembly`);
 
+    // Use the correct voice ID based on parsed gender
+    const finalVoiceId = finalParams.voiceGender === "male"
+      ? "GUDYcgRAONiI1nXDcNQQ"  // Male voice ID
+      : "g6xIsTj2HwM6VR4iXFCw"; // Female voice ID
+
     // Generate final meditation audio
-    console.log(`🎤 Generating audio with voice: ${voiceId} (${gender})`);
+    console.log(`🎤 Generating audio with voice: ${finalVoiceId} (${finalParams.voiceGender}) - ${finalParams.voiceStyle} style`);
     const meditationStream = await generateConcatenatedMeditation(
       assemblySegments,
-      voiceId,
-      gender,
+      finalVoiceId,
+      finalParams.voiceGender,
+      finalParams.voiceStyle,
     );
 
     console.log("✅ AI-driven meditation generation completed successfully");
 
-    // Return audio stream with metadata
+    // Return audio stream with metadata including parsing info
     return new Response(meditationStream, {
       headers: {
         "Content-Type": "audio/mpeg",
@@ -133,6 +201,10 @@ export async function POST(request: NextRequest) {
         "X-Meditation-Segments": meditationPlan.segments.length.toString(),
         "X-Meditation-Words": meditationPlan.metadata.contentWordCount.toString(),
         "X-Meditation-Complexity": meditationPlan.metadata.estimatedComplexity.toString(),
+        // Add parsing metadata for UI updates
+        "X-Parsed-Overrides": JSON.stringify(overrides),
+        "X-Parsed-Confidence": (parsedInfo?.confidence || 0).toString(),
+        "X-Final-Params": JSON.stringify(finalParams),
       },
     });
   } catch (error) {

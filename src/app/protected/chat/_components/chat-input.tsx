@@ -6,7 +6,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
 import { AskRegistrationDrawerContent, CustomDrawer } from "./custom-drawer";
-import { MeditationPanel, type MeditationParams } from "./meditation-panel";
+import { MeditationPanel, type MeditationParams, type ParsedOverrides } from "./meditation-panel";
 import { useChatState, useDrawer } from "./provider";
 
 interface ChatInputProps {
@@ -24,6 +24,7 @@ export function ChatInput({ onChatFocus }: ChatInputProps) {
   } = useChatState();
 
   const [isExpanded, setIsExpanded] = useState(false);
+  const [parsedOverrides, setParsedOverrides] = useState<ParsedOverrides | null>(null);
 
   const isLoading = useMemo(
     () => status === "streaming" || status === "submitted" || isGeneratingMeditation,
@@ -94,6 +95,30 @@ export function ChatInput({ onChatFocus }: ChatInputProps) {
         body: JSON.stringify({ prompt: currentInput, voiceId: defaultVoiceId, gender: "female", duration: 5, background: "silence", guidance: "confirmed", goal: "calm" }),
       });
       if (!response.ok) throw new Error(await response.text());
+      
+      // Extract parsing metadata from response headers
+      const overridesHeader = response.headers.get("X-Parsed-Overrides");
+      const confidenceHeader = response.headers.get("X-Parsed-Confidence");
+      const finalParamsHeader = response.headers.get("X-Final-Params");
+      
+      if (overridesHeader && confidenceHeader && finalParamsHeader) {
+        try {
+          const overrides = JSON.parse(overridesHeader);
+          const confidence = parseFloat(confidenceHeader);
+          const finalParams = JSON.parse(finalParamsHeader);
+          
+          setParsedOverrides({
+            overrides,
+            confidence,
+            finalParams,
+          });
+          
+          console.log("✨ Received parsing info:", { overrides, confidence, finalParams });
+        } catch (e) {
+          console.warn("Failed to parse meditation metadata:", e);
+        }
+      }
+      
       const audioBlob = await response.blob();
       if (audioBlob.size === 0) throw new Error("Received empty audio file");
       const audioUrl = URL.createObjectURL(audioBlob);
@@ -128,7 +153,13 @@ export function ChatInput({ onChatFocus }: ChatInputProps) {
       >
         <div className="h-full overflow-hidden">
           <div className="h-full overflow-y-auto px-4 py-4">
-            <MeditationPanel onGenerate={handleMeditationGenerate} isGenerating={isGeneratingMeditation} isExpanded={isExpanded} toggleExpand={() => setIsExpanded(!isExpanded)} />
+            <MeditationPanel 
+              onGenerate={handleMeditationGenerate} 
+              isGenerating={isGeneratingMeditation} 
+              isExpanded={isExpanded} 
+              toggleExpand={() => setIsExpanded(!isExpanded)}
+              parsedOverrides={parsedOverrides}
+            />
           </div>
         </div>
       </div>

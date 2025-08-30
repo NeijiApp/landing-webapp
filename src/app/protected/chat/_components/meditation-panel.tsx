@@ -34,11 +34,18 @@ export interface MeditationParams {
 	goal: "morning" | "focus" | "calm" | "sleep";
 }
 
+export interface ParsedOverrides {
+	overrides: string[];
+	confidence: number;
+	finalParams: MeditationParams;
+}
+
 interface MeditationPanelProps {
 	onGenerate: (params: MeditationParams) => void;
 	isGenerating: boolean;
 	isExpanded: boolean;
 	toggleExpand: () => void;
+	parsedOverrides?: ParsedOverrides | null;
 }
 
 const DURATION_OPTIONS = [2, 3, 5, 7, 10, 15];
@@ -106,6 +113,7 @@ export function MeditationPanel({
 	isGenerating,
 	isExpanded,
 	toggleExpand,
+	parsedOverrides,
 }: MeditationPanelProps) {
 	const [params, setParams] = useState<MeditationParams>({
 		duration: 5,
@@ -116,6 +124,32 @@ export function MeditationPanel({
 	});
 	const [isTestGenerating, setIsTestGenerating] = useState(false);
 	// TTS provider is fixed to ElevenLabs; remove switching UI
+
+	// Helper function to check if a parameter was overridden by user input
+	const isOverridden = (paramName: string): boolean => {
+		return parsedOverrides?.overrides.includes(paramName) ?? false;
+	};
+
+	// Helper function to get button styling based on override status
+	const getButtonStyling = (isSelected: boolean, paramName: string) => {
+		const baseSelected = "bg-orange-500 text-white";
+		const baseUnselected = "border-orange-300 text-orange-700";
+		const overriddenSelected = "bg-amber-500 text-white ring-2 ring-amber-300";
+		const overriddenUnselected = "border-amber-400 text-amber-700 bg-amber-50";
+
+		if (isOverridden(paramName)) {
+			return isSelected ? overriddenSelected : overriddenUnselected;
+		}
+		
+		return isSelected ? baseSelected : baseUnselected;
+	};
+
+	// Update params when parsed overrides change
+	useEffect(() => {
+		if (parsedOverrides?.finalParams) {
+			setParams(parsedOverrides.finalParams);
+		}
+	}, [parsedOverrides]);
 
 	const handleGenerate = () => {
 		onGenerate(params);
@@ -174,12 +208,13 @@ export function MeditationPanel({
 									onClick={() => setParams((prev) => ({ ...prev, duration }))}
 									className={cn(
 										"h-9 min-w-[40px] text-xs",
-										params.duration === duration
-											? "bg-orange-500 text-white"
-											: "border-orange-300 text-orange-700",
+										getButtonStyling(params.duration === duration, "duration"),
 									)}
 								>
 									{duration}m
+									{isOverridden("duration") && params.duration === duration && (
+										<span className="ml-1 text-xs">✨</span>
+									)}
 								</Button>
 							</TooltipTrigger>
 							<TooltipContent>
@@ -202,12 +237,13 @@ export function MeditationPanel({
 									}
 									className={cn(
 										"h-9 w-full text-xs",
-										params.gender === gender.value
-											? "bg-orange-500 text-white"
-											: "border-orange-300 text-orange-700",
+										getButtonStyling(params.gender === gender.value, "voiceGender"),
 									)}
 								>
 									{gender.label}
+									{isOverridden("voiceGender") && params.gender === gender.value && (
+										<span className="ml-1 text-xs">✨</span>
+									)}
 								</Button>
 							</TooltipTrigger>
 							<TooltipContent>
@@ -230,13 +266,14 @@ export function MeditationPanel({
 										setParams((prev) => ({ ...prev, goal: goal.value }))
 									}
 									className={cn(
-										"h-9 w-full",
-										params.goal === goal.value
-											? "bg-orange-500 text-white"
-											: "border-orange-300 text-orange-700",
+										"h-9 w-full relative",
+										getButtonStyling(params.goal === goal.value, "goal"),
 									)}
 								>
 									<Icon className="size-4" />
+									{isOverridden("goal") && params.goal === goal.value && (
+										<span className="absolute -top-1 -right-1 text-xs">✨</span>
+									)}
 								</Button>
 							</TooltipTrigger>
 							<TooltipContent>
@@ -266,12 +303,13 @@ export function MeditationPanel({
 							onClick={() => setParams((prev) => ({ ...prev, duration }))}
 							className={cn(
 								"h-8 text-xs",
-								params.duration === duration
-									? "bg-orange-500 text-white"
-									: "border-orange-300 text-orange-700",
+								getButtonStyling(params.duration === duration, "duration"),
 							)}
 						>
 							{duration}m
+							{isOverridden("duration") && params.duration === duration && (
+								<span className="ml-1 text-xs">✨</span>
+							)}
 						</Button>
 					))}
 				</div>
@@ -441,7 +479,21 @@ export function MeditationPanel({
 			<div className="mx-auto w-full max-w-2xl rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50/95 to-orange-100/95 shadow-lg backdrop-blur-md overflow-hidden">
 				{/* Header */}
 				<div className="flex items-center justify-between border-orange-200 border-b p-3 text-center bg-gradient-to-br from-orange-50/95 to-orange-100/95 rounded-t-2xl">
-					<div className="w-8" />
+					<div className="w-8">
+						{parsedOverrides && parsedOverrides.confidence > 0.3 && (
+							<Tooltip delayDuration={0}>
+								<TooltipTrigger asChild>
+									<div className="flex items-center justify-center w-6 h-6 bg-amber-500 text-white rounded-full text-xs font-bold">
+										✨
+									</div>
+								</TooltipTrigger>
+								<TooltipContent>
+									<p>AI detected parameters from your input</p>
+									<p className="text-xs opacity-80">Confidence: {Math.round(parsedOverrides.confidence * 100)}%</p>
+								</TooltipContent>
+							</Tooltip>
+						)}
+					</div>
 					<h2 className="flex items-center justify-center gap-2 font-bold text-base text-orange-800">
 						<Target className="size-4" />
 						Meditation Mode

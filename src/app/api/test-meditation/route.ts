@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
 			testSegments,
 			voiceId,
 			gender,
+			"calm", // Default style for test
 		);
 
 		console.log("✅ TEST meditation generation successful");
