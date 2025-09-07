@@ -92,26 +92,23 @@ Respond with a JSON object containing:
   "reasoning": "Explanation of inferences and why they fit together"
 }
 
-SMART EXAMPLES:
+CONTENT-AWARE PAUSE EXAMPLES:
 
-Input: "I need to focus for work"
-Output: {"duration": 8, "goal": "focus", "voiceGender": "male", "voiceStyle": "focused", "guidanceLevel": "confirmed", "background": "silence", "confidence": 0.9, "detectedParams": ["goal"], "reasoning": "Work focus needs structured guidance with clear male voice, 8min for optimal concentration, silence to minimize distractions"}
+Input: "Take a deep breath in. Now exhale slowly. Notice your body."
+Output: "Take a deep breath in.[PAUSE:3] Now exhale slowly.[PAUSE:3] Notice your body.[PAUSE:3]"
 
-Input: "Help me sleep"
-Output: {"duration": 12, "goal": "sleep", "voiceGender": "female", "voiceStyle": "soothing", "guidanceLevel": "beginner", "background": "rain", "confidence": 0.85, "detectedParams": ["goal"], "reasoning": "Sleep meditation benefits from moderate duration, gentle female voice, rain sounds for white noise, simple guidance"}
+Input: "What do you notice? How does your body feel?"
+Output: "What do you notice?[PAUSE:3] How does your body feel?[PAUSE:3]"
 
-Input: "Feeling stressed"
-Output: {"duration": 8, "goal": "calm", "voiceGender": "female", "voiceStyle": "calm", "guidanceLevel": "confirmed", "background": "waves", "confidence": 0.8, "detectedParams": [], "reasoning": "Stress relief needs calming approach with soothing female voice, wave sounds for relaxation, moderate duration"}
+Input: "Let’s take a moment of silence to focus on your breath."
+Output: "Let’s take a moment of silence to focus on your breath.[PAUSE:20]"
 
-Input: "Quick meditation"
-Output: {"duration": 3, "goal": "calm", "voiceGender": "female", "voiceStyle": "calm", "guidanceLevel": "confirmed", "background": "silence", "confidence": 0.75, "detectedParams": ["duration"], "reasoning": "Quick session suggests very short duration, calm voice for immediate stress relief"}
-
-Input: "I want a short, meditation to wake up, male voice"
-Output: {"duration": 3, "goal": "energy", "voiceGender": "male", "voiceStyle": "energetic", "guidanceLevel": "confirmed", "background": "silence", "confidence": 0.9, "detectedParams": ["duration", "goal", "voiceGender"], "reasoning": "Short wake-up meditation needs male voice for energy, quick duration to boost alertness, energetic style to stimulate wakefulness"}`;
+Input: "If your mind wanders, gently bring it back."
+Output: "If your mind wanders,[PAUSE:1] gently bring it back.[PAUSE:3]"`;
 
     const userPrompt = `Analyze this meditation request and infer the most appropriate parameters: "${userInput}"
 
-Consider the user's intent, emotional state, and what would create the best meditation experience. Make intelligent inferences based on meditation best practices and psychological principles.`;
+Consider the user's intent, emotional state, and what would create the best meditation experience. Make intelligent inferences based on meditation best practices and psychological principles.`
 
     try {
       console.log('🤖 Using LLM to parse user input:', userInput);

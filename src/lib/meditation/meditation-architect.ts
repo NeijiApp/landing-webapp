@@ -55,9 +55,9 @@ export class MeditationArchitect {
     const segments = await this.generateSegmentContent(segmentPlan, spec, speechConfig);
     
     // Step 4: Validate and adjust timing
-    const validation = timingCalculator.validateTiming(segments, spec);
+    const validation = timingCalculator.validateTiming(segments, spec, timingCalc);
     let finalSegments = segments;
-    
+
     if (!validation.isValid) {
       console.warn(`⚠️ Timing adjustment needed. Variance: ${Math.round(validation.variance)}s`);
       finalSegments = await this.adjustTiming(segments, spec, validation.variance);
@@ -290,7 +290,7 @@ export class MeditationArchitect {
   private async generateAIContent(prompt: ContentGenerationPrompt): Promise<string> {
     const systemPrompt = this.buildSystemPrompt(prompt);
     const userPrompt = this.buildUserPrompt(prompt);
-    
+
     try {
       const { text } = await generateText({
         model: openai('gpt-4o-mini'),
@@ -299,23 +299,48 @@ export class MeditationArchitect {
         temperature: 0.7,
         maxTokens: Math.min(prompt.targetWordCount * 2, 1000), // Rough token estimate
       });
-      
+
       // Ensure content fits within word count (with small tolerance)
-      return this.adjustContentLength(text, prompt.targetWordCount);
-      
+      let content = this.adjustContentLength(text, prompt.targetWordCount);
+
+      // Apply intelligent pause analysis and insertion
+      const enhancedContent = await this.enhanceContentWithPauses(content, prompt);
+
+      return enhancedContent;
+
     } catch (error) {
       console.error('AI content generation failed:', error);
-      
+
       // Fallback to template-based content
       return this.createFallbackContent(prompt);
     }
   }
 
   /**
+   * Enhances content with intelligent pauses based on professional meditation patterns
+   */
+  private async enhanceContentWithPauses(content: string, prompt: ContentGenerationPrompt): Promise<string> {
+    // Import the intelligent pause agent dynamically to avoid circular dependencies
+    const { intelligentPauseAgent } = await import('./intelligent-pause-agent');
+
+    const context = {
+      segmentType: prompt.segmentType,
+      guidanceLevel: prompt.context.guidanceLevel,
+      goal: prompt.context.userGoal,
+    };
+
+    const analysis = intelligentPauseAgent.analyzeAndInsertPauses(content, context);
+
+    console.log(`🤖 Enhanced content with ${analysis.pauses.length} intelligent pauses (+${analysis.totalPauseTime}s)`);
+
+    return analysis.content;
+  }
+
+  /**
    * Build system prompt for AI content generation
    */
   private buildSystemPrompt(prompt: ContentGenerationPrompt): string {
-    return `You are an expert meditation guide creating personalized meditation content. 
+    return `You are an expert meditation guide creating personalized meditation content.
 
 Your role:
 - Generate natural, flowing meditation guidance
@@ -323,28 +348,32 @@ Your role:
 - Use calm, soothing, and encouraging language
 - Create content that fits exactly within the specified word count
 - Ensure smooth transitions between segments
+- DO NOT include any [pause X] markers - pauses will be added automatically
 
 Guidelines for ${prompt.context.guidanceLevel} level:
-${prompt.context.guidanceLevel === 'beginner' 
+${prompt.context.guidanceLevel === 'beginner'
   ? '- Provide detailed, clear instructions\n- Offer reassurance and encouragement\n- Explain techniques simply'
   : prompt.context.guidanceLevel === 'expert'
   ? '- Use minimal, precise instructions\n- Allow more space for self-guidance\n- Reference advanced concepts'
   : '- Balance instruction with independence\n- Provide moderate guidance\n- Trust the practitioner\'s experience'
 }
 
-Content must be exactly ${prompt.targetWordCount} words (+/- 10%). Never exceed this limit.`;
+Content must be exactly ${prompt.targetWordCount} words (+/- 10%). Never exceed this limit.
+Pauses will be intelligently inserted based on content analysis.`;
   }
 
   /**
    * Build user prompt for specific segment
    */
   private buildUserPrompt(prompt: ContentGenerationPrompt): string {
-    let basePrompt = `Create meditation guidance for a ${prompt.segmentType} segment.
+    let basePrompt = `Create natural meditation guidance for a ${prompt.segmentType} segment.
 
 Purpose: ${prompt.purpose}
 Goal: Help the user achieve ${prompt.context.userGoal}
 Context: This is the ${prompt.context.timeInMeditation} of the meditation
 Theme: ${prompt.context.overallTheme}
+
+IMPORTANT: Write continuous, flowing text. Do not include any [pause X] markers - these will be added automatically based on content analysis.
 
 Target length: Exactly ${prompt.targetWordCount} words
 
@@ -352,26 +381,33 @@ Requirements:`;
 
     // Add segment-specific requirements
     if (prompt.constraints.includeBreathingCues) {
-      basePrompt += '\n- Include specific breathing instructions (breathe in, breathe out)';
-      basePrompt += '\n- Use phrases like "breathe in slowly" and "breathe out completely"';
-      basePrompt += '\n- Leave natural pauses for breathing with phrases like "take a moment to breathe"';
+      basePrompt += '\n- Include specific breathing instructions (e.g., "Take a slow, deep breath in. Now exhale gently")';
+      basePrompt += '\n- Use natural breathing guidance that flows conversationally';
+      basePrompt += '\n- Include phrases like "breathe in slowly" and "breathe out completely"';
     }
 
     if (prompt.constraints.visualizationElements) {
       basePrompt += `\n- Include visualization of: ${prompt.constraints.visualizationElements.join(', ')}`;
-      basePrompt += '\n- Use vivid, calming imagery';
-      basePrompt += '\n- Engage multiple senses in the visualization';
+      basePrompt += '\n- Use vivid, calming imagery that flows naturally';
+      basePrompt += '\n- Engage multiple senses in a conversational way';
     }
 
     if (prompt.constraints.bodyParts) {
       basePrompt += `\n- Guide attention through: ${prompt.constraints.bodyParts.join(', ')}`;
-      basePrompt += '\n- Use progressive relaxation techniques';
-      basePrompt += '\n- Encourage release of tension';
+      basePrompt += '\n- Use progressive relaxation techniques in a natural, flowing manner';
+      basePrompt += '\n- Encourage release of tension conversationally';
     }
 
     if (prompt.constraints.transitionNeeded) {
-      basePrompt += '\n- End with a smooth transition to the next part of the meditation';
+      basePrompt += '\n- End with a smooth, natural transition to the next part of the meditation';
     }
+
+    // Add guidance about sentence structure for better pause insertion
+    basePrompt += '\n\nContent Structure:';
+    basePrompt += '\n- Use short, complete sentences for breathing instructions';
+    basePrompt += '\n- Ask reflective questions naturally within the flow';
+    basePrompt += '\n- Include practice instructions that invite participation';
+    basePrompt += '\n- Make transitions feel conversational and smooth';
 
     return basePrompt;
   }

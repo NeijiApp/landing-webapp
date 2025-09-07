@@ -12,14 +12,15 @@ import { MEDITATION_CONFIG } from './meditation-specification';
 
 export interface TimingCalculation {
   totalDurationSeconds: number;
-  targetSpeechTime: number; // Total time for speaking
-  targetSilenceTime: number; // Total time for pauses
+  targetSpeechTime: number; // Pure speech time (without intra-sentence pauses)
+  targetSilenceTime: number; // Total time for pauses (inter + intra)
   silenceRatio: number; // Percentage of meditation that is silence
   segmentAllowances: {
     averageSegmentSpeechTime: number;
     averageSegmentPauseTime: number;
     totalSegments: number;
   };
+  intraSentencePauseTime?: number; // Time allocated for within-sentence pauses
 }
 
 export interface SegmentTiming {
@@ -37,27 +38,34 @@ export class MeditationTimingCalculator {
    */
   calculateOverallTiming(spec: MeditationSpecification): TimingCalculation {
     const totalDurationSeconds = spec.inferredDuration * 60;
-    
+
     // Determine silence ratio based on guidance level and goal
     const silenceRatio = this.calculateOptimalSilenceRatio(spec);
-    
+
     // Calculate speech vs silence time
-    const targetSilenceTime = totalDurationSeconds * silenceRatio;
-    const targetSpeechTime = totalDurationSeconds - targetSilenceTime;
-    
+    // Reserve time for intra-sentence pauses (estimated 20-30% of speech time for pauses)
+    const intraSentencePauseRatio = this.calculateIntraSentencePauseRatio(spec);
+    const totalSpeechTime = totalDurationSeconds * (1 - silenceRatio);
+    const intraSentencePauseTime = totalSpeechTime * intraSentencePauseRatio;
+    const pureSpeechTime = totalSpeechTime - intraSentencePauseTime;
+
+    // Inter-segment silence (between segments)
+    const interSegmentSilenceTime = totalDurationSeconds * silenceRatio;
+
     // Determine optimal segment count
     const totalSegments = this.calculateOptimalSegmentCount(spec);
-    
+
     return {
       totalDurationSeconds,
-      targetSpeechTime,
-      targetSilenceTime,
-      silenceRatio,
+      targetSpeechTime: pureSpeechTime, // Pure speech without intra-sentence pauses
+      targetSilenceTime: interSegmentSilenceTime + intraSentencePauseTime, // Combined silence
+      silenceRatio: (interSegmentSilenceTime + intraSentencePauseTime) / totalDurationSeconds,
       segmentAllowances: {
-        averageSegmentSpeechTime: targetSpeechTime / totalSegments,
-        averageSegmentPauseTime: targetSilenceTime / totalSegments,
+        averageSegmentSpeechTime: pureSpeechTime / totalSegments,
+        averageSegmentPauseTime: interSegmentSilenceTime / totalSegments,
         totalSegments,
       },
+      intraSentencePauseTime, // New: time allocated for within-sentence pauses
     };
   }
 
@@ -193,7 +201,8 @@ export class MeditationTimingCalculator {
    */
   validateTiming(
     segments: MeditationSegment[],
-    spec: MeditationSpecification
+    spec: MeditationSpecification,
+    timingCalc?: TimingCalculation
   ): {
     isValid: boolean;
     actualDuration: number;
@@ -202,21 +211,32 @@ export class MeditationTimingCalculator {
     suggestions: string[];
   } {
     const targetDuration = spec.inferredDuration * 60;
-    const actualDuration = segments.reduce((total, segment) => 
+
+    // Calculate actual duration including estimated intra-sentence pauses
+    let actualDuration = segments.reduce((total, segment) =>
       total + segment.estimatedSpeechTime + segment.silenceAfter, 0);
-    
+
+    // Add estimated intra-sentence pause time if available
+    if (timingCalc?.intraSentencePauseTime) {
+      // Estimate intra-sentence pauses based on content analysis
+      const estimatedIntraPauses = this.estimateIntraSentencePauses(segments);
+      actualDuration += estimatedIntraPauses;
+    }
+
     const variance = Math.abs(actualDuration - targetDuration);
     const toleranceSeconds = Math.max(5, targetDuration * 0.05); // 5 seconds or 5% tolerance
-    
+
     const suggestions: string[] = [];
-    
+
     if (variance > toleranceSeconds) {
       if (actualDuration > targetDuration) {
         suggestions.push('Reduce content length or silence duration');
-        suggestions.push(`Consider removing ${Math.ceil(variance)}s of content/silence`);
+        suggestions.push(`Consider removing ${Math.round(variance)}s of content/silence`);
+        suggestions.push('Shorten intra-sentence pause durations');
       } else {
         suggestions.push('Add more content or extend silence periods');
-        suggestions.push(`Consider adding ${Math.ceil(variance)}s of content/silence`);
+        suggestions.push(`Consider adding ${Math.round(variance)}s of content/silence`);
+        suggestions.push('Increase intra-sentence pause durations for reflection');
       }
     }
 
@@ -230,12 +250,46 @@ export class MeditationTimingCalculator {
   }
 
   /**
+   * Estimate intra-sentence pause time based on content analysis
+   */
+  private estimateIntraSentencePauses(segments: MeditationSegment[]): number {
+    let totalPauseTime = 0;
+
+    for (const segment of segments) {
+      // Rough estimation based on content analysis
+      const content = segment.content.toLowerCase();
+
+      // Count breathing instructions (3s each)
+      const breathingMatches = (content.match(/breathe in|breathe out|inhale|exhale/g) || []).length;
+      totalPauseTime += breathingMatches * 3;
+
+      // Count questions (3s each)
+      const questionMatches = (content.match(/\?/g) || []).length;
+      totalPauseTime += questionMatches * 3;
+
+      // Count practice instructions (2s each)
+      const practiceMatches = (content.match(/take a moment|pause here|sit with|rest in|simply observe|just notice|let it be|allow it to|stay with/g) || []).length;
+      totalPauseTime += practiceMatches * 2;
+
+      // Count transitions (2s each)
+      const transitionMatches = (content.match(/now let's|let's move|shift your|bring your|turn your|move to|transition to|now we'll|next we|let's begin/g) || []).length;
+      totalPauseTime += transitionMatches * 2;
+
+      // Add natural rhythm pauses (2s per sentence, roughly estimated)
+      const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 10);
+      totalPauseTime += sentences.length * 2;
+    }
+
+    return totalPauseTime;
+  }
+
+  /**
    * Private helper methods
    */
   
   private calculateOptimalSilenceRatio(spec: MeditationSpecification): number {
     let baseRatio = spec.constraints.maxSilence;
-    
+
     // Adjust based on goal
     if (spec.goal === 'sleep') {
       baseRatio = Math.min(baseRatio + 0.2, 0.8); // More silence for sleep
@@ -251,6 +305,37 @@ export class MeditationTimingCalculator {
     }
 
     return Math.max(0.1, Math.min(0.8, baseRatio));
+  }
+
+  /**
+   * Calculate how much of speech time should be allocated to intra-sentence pauses
+   * Based on professional meditation patterns from analyzed scripts
+   */
+  private calculateIntraSentencePauseRatio(spec: MeditationSpecification): number {
+    let ratio = 0.25; // Base 25% of speech time for intra-sentence pauses
+
+    // Adjust based on guidance level - beginners need more time for processing
+    if (spec.guidanceLevel === 'beginner') {
+      ratio = 0.35; // More pauses for beginners
+    } else if (spec.guidanceLevel === 'expert') {
+      ratio = 0.15; // Fewer pauses for experts
+    }
+
+    // Adjust based on goal
+    if (spec.goal === 'sleep') {
+      ratio = 0.30; // More pauses for sleep (longer reflection times)
+    } else if (spec.goal === 'focus') {
+      ratio = 0.20; // Fewer pauses for focus (keep momentum)
+    }
+
+    // Adjust based on duration - longer sessions have more complex content
+    if (spec.inferredDuration <= 3) {
+      ratio = 0.20; // Less complex for very short sessions
+    } else if (spec.inferredDuration >= 15) {
+      ratio = 0.30; // More complex content needs more pauses
+    }
+
+    return Math.max(0.15, Math.min(0.40, ratio)); // Clamp between 15%-40%
   }
 
   private calculateOptimalSegmentCount(spec: MeditationSpecification): number {

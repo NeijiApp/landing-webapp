@@ -9,6 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { env } from "~/env.js";
 import { generateParagraphAudioWithRouter } from "./tts-router";
+import { parseTextWithPauses, cleanTextForTTS } from "./text-processing";
 
 type Segment =
 	| { type: "text"; content: string }
@@ -27,28 +28,83 @@ export async function generateConcatenatedMeditation(
 	const tempDir = await mkdtemp(join(tmpdir(), "meditation-"));
 	const audioFiles: Array<{ localPath: string; silenceAfter?: number }> = [];
 
-	// Générer les fichiers audio pour chaque segment
+		// Process segments and generate audio files
+	const processedSegments: Array<{ localPath: string; silenceAfter?: number }> = [];
+
 	for (let i = 0; i < segments.length; i++) {
 		const seg = segments[i]!;
+
 		if (seg.type === "text") {
-			const stream = await generateParagraphAudioWithRouter(seg.content, {
-				voice_id: voiceId!,
-				voice_gender: voiceGender,
-				voice_style: voiceStyle || "calm",
-			});
-			// Lire le flux et écrire en fichier
-			const buffer = await new Response(stream).arrayBuffer();
-			const filePath = join(tempDir, `segment-${i}.mp3`);
-			await writeFile(filePath, Buffer.from(buffer));
-			audioFiles.push({ localPath: filePath });
-		} else {
-			// Pause : appliquer silence sur le segment précédent
+			console.log(`📝 Processing segment text: "${seg.content.substring(0, 100)}..."`);
+
+			// Parse text for pause markers and process accordingly
+			const parsedResult = parseTextWithPauses(seg.content);
+
+			console.log(`🔍 Parsed into ${parsedResult.segments.length} segments`);
+
+			for (let j = 0; j < parsedResult.segments.length; j++) {
+				const parsedSeg = parsedResult.segments[j]!;
+
+				if (parsedSeg.type === "text" && parsedSeg.content) {
+					// Clean the text for TTS (remove pause markers)
+					const cleanText = cleanTextForTTS(parsedSeg.content);
+
+					console.log(`🔍 Original text: "${parsedSeg.content}"`);
+					console.log(`🧹 Cleaned text: "${cleanText}"`);
+
+					// Double-check that pause markers are removed
+					if (cleanText.includes('[PAUSE:')) {
+						console.error(`❌ ERROR: Clean text still contains pause markers: "${cleanText}"`);
+						// Force clean again
+						const forceCleanText = cleanText.replace(/\[PAUSE:\d+\]/g, '').trim();
+						console.log(`🔧 Force cleaned: "${forceCleanText}"`);
+					}
+
+					if (cleanText.trim().length > 0) {
+						// Final safety check - ensure no pause markers remain
+						const finalCleanText = cleanText.replace(/\[PAUSE:\d+\]/g, '').trim();
+
+						console.log(`🎙️ Generating TTS for: "${finalCleanText.substring(0, 50)}..."`);
+
+						const stream = await generateParagraphAudioWithRouter(finalCleanText, {
+							voice_id: voiceId!,
+							voice_gender: voiceGender,
+							voice_style: voiceStyle || "calm",
+						});
+
+						// Read the stream and write to file
+						const buffer = await new Response(stream).arrayBuffer();
+						const filePath = join(tempDir, `segment-${i}-${j}.mp3`);
+						await writeFile(filePath, Buffer.from(buffer));
+
+						processedSegments.push({
+							localPath: filePath,
+							silenceAfter: undefined, // Will be set by next pause segment
+						});
+					}
+				} else if (parsedSeg.type === "pause" && parsedSeg.duration) {
+					// Apply silence to the previous segment
+					const silenceMs = parsedSeg.duration * 1000;
+					if (processedSegments.length > 0) {
+						const lastSegment = processedSegments[processedSegments.length - 1]!;
+						lastSegment.silenceAfter = silenceMs;
+						console.log(`⏸️ Adding ${parsedSeg.duration}s pause after previous segment`);
+					}
+				}
+			}
+		} else if (seg.type === "pause") {
+			// Handle explicit pause segments
 			const silenceMs = seg.duration * 1000;
-			if (audioFiles.length > 0) {
-				audioFiles[audioFiles.length - 1]!.silenceAfter = silenceMs;
+			if (processedSegments.length > 0) {
+				const lastSegment = processedSegments[processedSegments.length - 1]!;
+				lastSegment.silenceAfter = silenceMs;
+				console.log(`⏸️ Adding ${seg.duration}s pause to previous segment`);
 			}
 		}
 	}
+
+	// Copy processed segments to audioFiles for assembly
+	audioFiles.push(...processedSegments);
 
 	// Chemin de sortie final
 	const outputPath = join(tempDir, "meditation-final.mp3");

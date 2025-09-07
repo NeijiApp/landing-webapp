@@ -35,13 +35,16 @@ const generateParagraphAudio = async (
 		throw new Error("The environment variable ELEVENLABS_API_KEY is not set");
 	}
 
+	// Clean the text to remove any pause markers that might have slipped through
+	const cleanParagraph = paragraph.replace(/\[PAUSE:\d+\]/g, '').trim();
+
 	// Déduire le genre de la voix à partir de l'ID si pas fourni
 	const actualVoiceGender =
 		voice_gender || (voice_id === "g6xIsTj2HwM6VR4iXFCw" ? "female" : "male");
 	// 1. Vérifier d'abord le cache
-	console.log(`🔍 Checking cache for: "${paragraph.substring(0, 50)}..."`);
+	console.log(`🔍 Checking cache for: "${cleanParagraph.substring(0, 50)}..."`);
 	const cachedSegment = await findCachedAudioSegment(
-		paragraph,
+		cleanParagraph,
 		voice_id,
 		voice_style,
 	);
@@ -84,9 +87,9 @@ const generateParagraphAudio = async (
 	}
 
 	// 2. Générer l'audio via ElevenLabs si pas en cache
-	console.log(
-		`🎙️ Generating new audio with ElevenLabs for: "${paragraph.substring(0, 50)}..."`,
-	);
+		console.log(
+			`🎙️ Generating new audio with ElevenLabs for: "${cleanParagraph.substring(0, 50)}..."`,
+		);
 	// Use non-streaming endpoint for more reliable audio generation
 	const url = `https://api.elevenlabs.io/v1/text-to-speech/${voice_id}`;
 
@@ -98,7 +101,7 @@ const generateParagraphAudio = async (
 			Accept: "audio/mpeg",
 		},
 		body: JSON.stringify({
-			text: paragraph,
+			text: cleanParagraph,
 			next_text,
 			model_id: "eleven_turbo_v2_5", // Latest high-quality model with better naturalness
 			output_format: "mp3_44100_192", // Higher quality: 192kbps instead of 128kbps
@@ -133,7 +136,7 @@ const generateParagraphAudio = async (
 			},
 		});
 
-		const textHash = paragraph.slice(0, 50).replace(/[^a-zA-Z0-9]/g, "");
+		const textHash = cleanParagraph.slice(0, 50).replace(/[^a-zA-Z0-9]/g, "");
 		const audioUrl = await saveAudioToStorage(
 			storageStream,
 			voice_id,
@@ -141,7 +144,7 @@ const generateParagraphAudio = async (
 		);
 
 		await saveAudioSegmentToCache(
-			paragraph,
+			cleanParagraph,
 			voice_id,
 			actualVoiceGender,
 			voice_style,
