@@ -537,7 +537,7 @@ Generate specific, personalized content for each phase that directly addresses t
 
 		const voiceId =
 			voiceGender === "female"
-				? "g6xIsTj2HwM6VR4iXFCw"
+				? "pjcYQlDFKMbcOUp6F5GD"
 				: "onwK4e9ZLuTAKqWW03F9";
 		for (const segment of segments) {
 			// Search for similar segments

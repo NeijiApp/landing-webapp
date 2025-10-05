@@ -40,7 +40,7 @@ const generateParagraphAudio = async (
 
 	// Déduire le genre de la voix à partir de l'ID si pas fourni
 	const actualVoiceGender =
-		voice_gender || (voice_id === "g6xIsTj2HwM6VR4iXFCw" ? "female" : "male");
+		voice_gender || (voice_id === "pjcYQlDFKMbcOUp6F5GD" ? "female" : "male");
 	// 1. Vérifier d'abord le cache
 	console.log(`🔍 Checking cache for: "${cleanParagraph.substring(0, 50)}..."`);
 	const cachedSegment = await findCachedAudioSegment(

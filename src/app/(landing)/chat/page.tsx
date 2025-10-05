@@ -60,7 +60,7 @@ function ChatLogic() {
 						setMessages([
 							{
 								id: "msg-originalmessage",
-								content: "Hey ! What is the one thing you want to improve in your life today ?",
+								content: "Hey ! What is the one thing you want to improve today ?",
 								role: "assistant",
 							},
 						]);
