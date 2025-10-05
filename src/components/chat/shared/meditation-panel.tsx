@@ -191,7 +191,7 @@ export function MeditationPanel({
 	};
 
 	const CompactView = () => (
-		<div className="space-y-3 p-4 pb-2 transition-all duration-300 ease-out">
+		<div className="space-y-3 p-4 pb-0 transition-all duration-300 ease-out">
 			{/* Quick Actions: Duration & Goal */}
 			<div className="flex gap-2">
 				<div className="grid flex-1 grid-cols-3 gap-1.5">
@@ -517,7 +517,10 @@ export function MeditationPanel({
 				{isExpanded ? <ExpandedView /> : <CompactView />}
 
 				{/* Generate Buttons */}
-				<div className="space-y-2 border-t border-orange-100/60 p-3 mt-2 bg-white transition-all duration-300 ease-out">
+				<div className={cn(
+					"border-t border-orange-100/60 p-3 mt-0 bg-white transition-all duration-300 ease-out",
+					isExpanded ? "space-y-2" : "space-y-0"
+				)}>
 					<Button
 						onClick={handleGenerate}
 						disabled={isGenerating || isTestGenerating}
@@ -537,25 +540,28 @@ export function MeditationPanel({
 						)}
 					</Button>
 
-					<Button
-						onClick={handleTestGenerate}
-						disabled={isGenerating || isTestGenerating}
-						className="w-full bg-blue-500 py-2 font-medium text-xs text-white hover:bg-blue-600"
-						size="sm"
-						variant="outline"
-					>
-						{isTestGenerating ? (
-							<>
-								<div className="mr-2 h-3 w-3 animate-spin rounded-full border-blue-500 border-b-2" />
-								Testing...
-							</>
-						) : (
-							<>
-								<Zap className="mr-2 size-3" />
-								Quick Test (1 sentence)
-							</>
-						)}
-					</Button>
+					{/* Quick Test button - Only visible in expanded mode */}
+					{isExpanded && (
+						<Button
+							onClick={handleTestGenerate}
+							disabled={isGenerating || isTestGenerating}
+							className="w-full bg-blue-500 py-2 font-medium text-xs text-white hover:bg-blue-600"
+							size="sm"
+							variant="outline"
+						>
+							{isTestGenerating ? (
+								<>
+									<div className="mr-2 h-3 w-3 animate-spin rounded-full border-blue-500 border-b-2" />
+									Testing...
+								</>
+							) : (
+								<>
+									<Zap className="mr-2 size-3" />
+									Quick Test (1 sentence)
+								</>
+							)}
+						</Button>
+					)}
 				</div>
 			</div>
 		</TooltipProvider>

@@ -26,6 +26,7 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
   } = useChatState();
 
   const [parsedOverrides, setParsedOverrides] = useState<ParsedOverrides | null>(null);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   const isLoading = useMemo(
     () => status === "streaming" || status === "submitted" || isGeneratingMeditation,
@@ -34,11 +35,55 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
 
   const { isOpen: isAuthDrawerOpen, openDrawer, closeDrawer } = useDrawer();
   
-  // Meditation drawer is open when meditation mode is active
+  // Meditation drawer is open when meditation mode is active (but doesn't hide chat bar)
   const isMeditationDrawerOpen = meditationMode === "meditation";
   
-  // Any drawer is open
-  const isAnyDrawerOpen = isAuthDrawerOpen || isMeditationDrawerOpen;
+  // Only auth drawer should hide the chat bar buttons
+  const shouldHideChatBar = isAuthDrawerOpen;
+
+  /**
+   * Coordinated drawer handlers to ensure only one drawer is open at a time
+   * When opening one drawer, the other closes first with proper animation timing
+   */
+  const handleOpenAuthDrawer = () => {
+    if (isMeditationDrawerOpen) {
+      // Close meditation drawer first, then open auth drawer after animation completes
+      setMeditationMode("chat");
+      setTimeout(() => {
+        openDrawer();
+      }, 500); // Wait for meditation drawer closing animation (500ms)
+    } else {
+      openDrawer();
+    }
+  };
+
+  const handleToggleMeditationDrawer = () => {
+    const newMode = meditationMode === "meditation" ? "chat" : "meditation";
+    
+    if (newMode === "meditation" && isAuthDrawerOpen) {
+      // Close auth drawer first, then open meditation drawer after animation completes
+      closeDrawer();
+      setTimeout(() => {
+        setMeditationMode("meditation");
+      }, 500); // Wait for auth drawer closing animation (500ms)
+    } else {
+      setMeditationMode(newMode);
+    }
+  };
+
+  // Detect mobile keyboard
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.visualViewport) {
+      const viewport = window.visualViewport;
+      const handleResize = () => {
+        // Keyboard is likely open if visual viewport height is significantly less than layout viewport height
+        setKeyboardOpen(viewport.height < window.innerHeight * 0.7 && isMeditationDrawerOpen);
+      };
+
+      viewport.addEventListener('resize', handleResize);
+      return () => viewport.removeEventListener('resize', handleResize);
+    }
+  }, [isMeditationDrawerOpen]);
 
   const getVoiceId = (gender: "male" | "female"): string => {
     return gender === "female" ? "g6xIsTj2HwM6VR4iXFCw" : "GUDYcgRAONiI1nXDcNQQ";
@@ -213,29 +258,32 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
         onGenerate={handleMeditationGenerate}
         isGenerating={isGeneratingMeditation}
         parsedOverrides={parsedOverrides}
+        keyboardOpen={keyboardOpen}
       />
 
-      {/* Enhanced Input Bar with Smooth Animations */}
+      {/* Enhanced Input Bar - Always visible on top, seamlessly connected to meditation drawer */}
       <div className={cn(
-        "fixed right-1/2 bottom-0 z-40 w-full max-w-xl translate-x-1/2 transition-all duration-500 ease-out",
-        isAnyDrawerOpen ? "transform translate-y-0" : "transform translate-y-0"
+        "fixed right-1/2 bottom-0 z-50 w-full max-w-xl translate-x-1/2 transition-all duration-500 ease-out"
       )}>
         <div className={cn(
-          "rounded-t-3xl bg-white/95 backdrop-blur-md shadow-2xl border border-orange-100/50 transition-all duration-500 ease-out",
-          isAnyDrawerOpen 
-            ? "p-0 pb-0 shadow-none border-transparent" 
-            : "p-3 pb-[calc(12px+env(safe-area-inset-bottom))] md:p-4"
+          "bg-white/95 backdrop-blur-md transition-all duration-500 ease-out",
+          "border-l border-r border-orange-100/50", // Sides only, no top/bottom border
+          shouldHideChatBar 
+            ? "p-0 pb-0 rounded-t-3xl border-t shadow-2xl" 
+            : "p-3 pb-[calc(12px+env(safe-area-inset-bottom))] md:p-4 rounded-t-3xl border-t shadow-2xl",
+          // When meditation drawer is open, remove top rounding and border to merge
+          isMeditationDrawerOpen && !shouldHideChatBar && "rounded-t-none border-t-0 shadow-none"
         )}>
           
-          {/* Chat Bar Content - Hide when any drawer is open with smooth animation */}
+          {/* Chat Bar Content - Only hide for auth drawer */}
           <div className={cn(
             "transition-all ease-out",
-            isAnyDrawerOpen 
+            shouldHideChatBar 
               ? "opacity-0 scale-95 pointer-events-none transform -translate-y-2 duration-200" 
               : "opacity-100 scale-100 pointer-events-auto transform translate-y-0 duration-400 delay-100"
           )}>
             <div className="flex items-center gap-3">
-              {/* User Profile Button - Enhanced with opening animation */}
+              {/* User Profile Button */}
               {!isAuthenticated && (
                 <Button
                   type="button"
@@ -243,78 +291,73 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
                   variant="orange"
                   className={cn(
                     "size-11 rounded-full transition-all ease-out",
-                    isAnyDrawerOpen 
+                    shouldHideChatBar 
                       ? "scale-0 opacity-0 rotate-180 duration-200" 
                       : "scale-100 opacity-100 rotate-0 duration-400 delay-150 hover:scale-105 active:scale-95"
                   )}
-                  onClick={() => openDrawer()}
+                  onClick={handleOpenAuthDrawer}
                 >
                   <User className={cn(
                     "transition-all ease-out",
-                    isAnyDrawerOpen ? "size-0 duration-200" : "size-6 duration-300 delay-150"
+                    shouldHideChatBar ? "size-0 duration-200" : "size-6 duration-300 delay-150"
                   )} />
                 </Button>
               )}
 
-              {/* Brain Button - Enhanced with opening animation */}
+              {/* Brain Button - Hidden when auth drawer is open */}
               <div className="group relative">
                 <Button
-                  onClick={() => {
-                    setMeditationMode(meditationMode === "meditation" ? "chat" : "meditation");
-                  }}
+                  onClick={handleToggleMeditationDrawer}
                   size="icon"
                   variant={meditationMode === "meditation" ? "orange" : "orangeOutline"}
                   className={cn(
                     "size-12 rounded-full transition-all ease-out",
-                    isAnyDrawerOpen 
-                      ? "scale-90 opacity-70 duration-200" 
-                      : "scale-100 opacity-100 duration-400 delay-100 hover:scale-105 active:scale-95"
+                    shouldHideChatBar 
+                      ? "scale-0 opacity-0 rotate-180 pointer-events-none duration-200" 
+                      : "scale-100 opacity-100 rotate-0 duration-300 hover:scale-105 active:scale-95"
                   )}
                 >
                   <Brain
                     className={cn(
-                      "transition-all duration-300",
-                      meditationMode === "meditation" ? "size-7" : "size-6",
+                      "transition-all ease-out",
+                      shouldHideChatBar ? "size-0 duration-200" : meditationMode === "meditation" ? "size-7 duration-300" : "size-6 duration-300",
                     )}
                   />
                 </Button>
 
-                {meditationMode === "meditation" && !isAnyDrawerOpen && (
+                {meditationMode === "meditation" && !shouldHideChatBar && (
                   <div className="absolute -right-1 -top-1 size-4 rounded-full border-2 border-white bg-orange-400">
                     <div className="size-full animate-pulse rounded-full bg-orange-300/70" />
                   </div>
                 )}
               </div>
 
-              {/* Input Form - Enhanced with opening/closing animation */}
-              <form onSubmit={finalHandleSubmit} className={cn(
-                "relative flex-1 transition-all ease-out",
-                isAnyDrawerOpen 
-                  ? "scale-95 opacity-70 duration-200" 
-                  : "scale-100 opacity-100 duration-400 delay-100"
-              )}>
+              {/* Input Form - Always accessible */}
+              <form onSubmit={finalHandleSubmit} className="relative flex-1">
                 <Input
-                  disabled={isLoading || isAnyDrawerOpen}
+                  disabled={isLoading || shouldHideChatBar}
                   type="text"
                   value={input ?? ""}
                   onChange={handleInputChange}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey && !isAnyDrawerOpen) {
+                    if (e.key === "Enter" && !e.shiftKey && !shouldHideChatBar) {
                       e.preventDefault();
                       finalHandleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
                     }
                   }}
-                  onFocus={isAnyDrawerOpen ? undefined : onChatFocus}
+                  onFocus={shouldHideChatBar ? undefined : onChatFocus}
                   placeholder={
-                    isAnyDrawerOpen 
+                    shouldHideChatBar 
                       ? "" 
-                      : messages.length === 0
-                        ? "Ask Neiji"
-                        : "Message"
+                      : meditationMode === "meditation"
+                        ? "Describe your meditation..."
+                        : messages.length === 0
+                          ? "Ask Neiji"
+                          : "Message"
                   }
                   className={cn(
                     "h-12 w-full rounded-full border-orange-200 bg-white/80 pl-6 pr-14 text-base transition-all focus:bg-white focus:ring-2 focus:ring-orange-300",
-                    isAnyDrawerOpen && "cursor-default"
+                    shouldHideChatBar && "cursor-default"
                   )}
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -324,10 +367,7 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
                       size="icon" 
                       variant="orangeOutline" 
                       onClick={stop} 
-                      className={cn(
-                        "size-9 rounded-full transition-all duration-300",
-                        isAnyDrawerOpen && "scale-90 opacity-70"
-                      )}
+                      className="size-9 rounded-full transition-all duration-300"
                     >
                       <Loader2 className="size-5 animate-spin" />
                     </Button>
@@ -338,11 +378,11 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
                       variant="orange" 
                       className={cn(
                         "size-9 rounded-full transition-all ease-out",
-                        isAnyDrawerOpen 
+                        shouldHideChatBar 
                           ? "scale-0 opacity-0 rotate-180 pointer-events-none duration-200" 
-                          : "scale-100 opacity-100 rotate-0 duration-400 delay-200 hover:scale-105 active:scale-95"
+                          : "scale-100 opacity-100 rotate-0 duration-300 hover:scale-105 active:scale-95"
                       )}
-                      disabled={!((input ?? "").trim()) || isAnyDrawerOpen}
+                      disabled={!((input ?? "").trim()) || shouldHideChatBar}
                     >
                       {meditationMode === "meditation" ? (
                         <Sparkles className="size-5" />

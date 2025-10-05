@@ -14,7 +14,7 @@ export default function LandingLayout({
 	return (
 		<div className="min-h-screen">
 			<Header />
-			<div className="pt-30">{children}</div>
+			<div className="pt-16">{children}</div>
 		</div>
 	);
 }
@@ -33,136 +33,127 @@ function Header() {
 	};
 
 	return (
-		<header className="fixed z-50 w-full bg-white/90 backdrop-blur-md">
-			<nav className="flex h-30 items-center justify-between px-10">
-				{/* Desktop Version */}
-				<div className="hidden items-center space-x-8 md:flex">
+		<header className="fixed top-0 z-50 w-full border-b border-orange-100/20 bg-white/80 backdrop-blur-xl">
+			<nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+				<div className="flex h-16 items-center justify-between">
+					{/* Logo - Always visible */}
 					<a
 						href="/"
 						onClick={handleLogoClick}
-						className="flex items-center transition-opacity hover:opacity-80"
+						className="group flex items-center gap-2 transition-transform hover:scale-[1.02] active:scale-[0.98] sm:gap-3"
 					>
 						<Image
 							src="/logo-neiji-full.png"
 							alt="Neiji Logo"
 							width={620}
 							height={403}
-							className="h-20 w-30"
+							className="h-8 w-auto transition-transform group-hover:rotate-6 sm:h-12"
 						/>
-						{/* Font display for desktop */}
-						<span className="font-bold text-4xl text-orange-500">Neiji</span>
-					</a>
-				</div>
-				{/* Mobile Version */}
-				<div className="flex w-full items-center justify-between md:hidden">
-					<button
-						type="button"
-						className="p-2"
-						onClick={() => setIsMenuOpen(!isMenuOpen)}
-					>
-						{isMenuOpen ? (
-							<X className="h-6 w-6 text-orange-500" />
-						) : (
-							<Menu className="h-6 w-6 text-orange-500" />
-						)}
-					</button>
-
-					<a
-						href="/"
-						onClick={handleLogoClick}
-						className="flex flex-1 items-center justify-center transition-opacity hover:opacity-80"
-					>
-						<Image
-							src="/logo-neiji-full.png"
-							alt="Neiji Logo"
-							width={620}
-							height={403}
-							className="h-16 w-24"
-						/>
-						<span className="font-semibold text-3xl text-orange-500">
+						<span className="bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text font-bold text-xl text-transparent sm:text-2xl md:text-3xl">
 							Neiji
 						</span>
 					</a>
 
-					{/* Empty div to maintain spacing */}
-					<div className="w-8" />
-				</div>{" "}
-				{/* Desktop Navigation Links */}
-				<div className="hidden space-x-8 md:flex">
-					<Link
-						href="/manifesto"
-						className="text-gray-600 hover:text-orange-500"
-					>
-						Manifesto
-					</Link>
-					<Link href="/ask" className="text-gray-600 hover:text-orange-500">
-						Chat
-					</Link>
-					<Link href="/contact" className="text-gray-600 hover:text-orange-500">
-						Contact
-					</Link>
-					<Link
-						href="/#newsletter"
-						className="text-gray-600 hover:text-orange-500"
-					>
-						Newsletter
-					</Link>
-					<Link
-						href="/chat?signin=true"
-						className="text-gray-600 hover:text-orange-500"
-					>
-						Sign In
-					</Link>
-				</div>
-				{/* Mobile Menu */}
-				<AnimatePresence>
-					{isMenuOpen && (
-						<motion.nav
-							initial={{ opacity: 0, y: -10 }}
-							animate={{ opacity: 1, y: 0 }}
-							exit={{ opacity: 0, y: -10 }}
-							transition={{ duration: 0.3 }}
-							className="fixed top-24 right-0 left-0 z-50 mx-4 space-y-3 rounded-xl bg-white px-4 pb-6 shadow-md md:hidden"
+					{/* Desktop Navigation */}
+					<div className="hidden items-center gap-1 md:flex">
+						<Link
+							href="/manifesto"
+							className="rounded-full px-4 py-2 font-medium text-gray-700 text-sm transition-all hover:bg-orange-50 hover:text-orange-600"
 						>
+							Manifesto
+						</Link>
+						<Link
+							href="/ask"
+							className="rounded-full px-4 py-2 font-medium text-gray-700 text-sm transition-all hover:bg-orange-50 hover:text-orange-600"
+						>
+							Chat
+						</Link>
+						<Link
+							href="/contact"
+							className="rounded-full px-4 py-2 font-medium text-gray-700 text-sm transition-all hover:bg-orange-50 hover:text-orange-600"
+						>
+							Contact
+						</Link>
+						<Link
+							href="/#newsletter"
+							className="rounded-full px-4 py-2 font-medium text-gray-700 text-sm transition-all hover:bg-orange-50 hover:text-orange-600"
+						>
+							Newsletter
+						</Link>
+						<Link
+							href="/chat?signin=true"
+							className="ml-2 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-2 font-semibold text-sm text-white shadow-sm transition-all hover:shadow-md hover:shadow-orange-200 active:scale-95"
+						>
+							Sign In
+						</Link>
+					</div>
+
+					{/* Mobile Menu Button */}
+					<button
+						type="button"
+						onClick={() => setIsMenuOpen(!isMenuOpen)}
+						className="rounded-xl p-2 transition-colors hover:bg-orange-50 md:hidden"
+						aria-label="Toggle menu"
+					>
+						{isMenuOpen ? (
+							<X className="h-6 w-6 text-orange-600" />
+						) : (
+							<Menu className="h-6 w-6 text-orange-600" />
+						)}
+					</button>
+				</div>
+			</nav>
+
+			{/* Mobile Menu */}
+			<AnimatePresence>
+				{isMenuOpen && (
+					<motion.div
+						initial={{ opacity: 0, height: 0 }}
+						animate={{ opacity: 1, height: "auto" }}
+						exit={{ opacity: 0, height: 0 }}
+						transition={{ duration: 0.2, ease: "easeOut" }}
+						className="overflow-hidden border-t border-orange-100/20 bg-white/95 backdrop-blur-xl md:hidden"
+					>
+						<nav className="space-y-1 px-4 py-4">
 							<Link
 								href="/manifesto"
 								onClick={() => setIsMenuOpen(false)}
-								className="block font-medium text-gray-800 transition-colors duration-200 hover:text-orange-500"
+								className="block rounded-xl px-4 py-3 font-medium text-gray-700 text-sm transition-colors hover:bg-orange-50 hover:text-orange-600"
 							>
 								Manifesto
 							</Link>
 							<Link
 								href="/ask"
 								onClick={() => setIsMenuOpen(false)}
-								className="block font-medium text-gray-800 transition-colors duration-200 hover:text-orange-500"
+								className="block rounded-xl px-4 py-3 font-medium text-gray-700 text-sm transition-colors hover:bg-orange-50 hover:text-orange-600"
 							>
 								Chat
 							</Link>
 							<Link
 								href="/contact"
 								onClick={() => setIsMenuOpen(false)}
-								className="block font-medium text-gray-800 transition-colors duration-200 hover:text-orange-500"
+								className="block rounded-xl px-4 py-3 font-medium text-gray-700 text-sm transition-colors hover:bg-orange-50 hover:text-orange-600"
 							>
 								Contact
-							</Link>{" "}
+							</Link>
 							<Link
 								href="/#newsletter"
 								onClick={() => setIsMenuOpen(false)}
-								className="block font-medium text-gray-800 transition-colors duration-200 hover:text-orange-500"
+								className="block rounded-xl px-4 py-3 font-medium text-gray-700 text-sm transition-colors hover:bg-orange-50 hover:text-orange-600"
 							>
 								Newsletter
 							</Link>
 							<Link
 								href="/chat?signin=true"
 								onClick={() => setIsMenuOpen(false)}
-								className="block font-medium text-gray-800 transition-colors duration-200 hover:text-orange-500"
+								className="mt-2 block rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-3 text-center font-semibold text-sm text-white shadow-sm transition-all active:scale-95"
 							>
 								Sign In
 							</Link>
-						</motion.nav>
-					)}
-				</AnimatePresence>
-			</nav>
+						</nav>
+					</motion.div>
+				)}
+			</AnimatePresence>
 		</header>
 	);
 }

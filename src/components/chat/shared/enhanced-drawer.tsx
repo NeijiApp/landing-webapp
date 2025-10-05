@@ -85,7 +85,7 @@ export function EnhancedDrawer({ isOpen, onClose, isAuthenticated = false }: Enh
   );
 
   const UnauthenticatedContent = () => (
-    <div className="flex h-full flex-col p-6">
+    <div className="flex h-full flex-col p-6 pb-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="text-center flex-1">
@@ -103,7 +103,7 @@ export function EnhancedDrawer({ isOpen, onClose, isAuthenticated = false }: Enh
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col justify-center space-y-6">
+      <div className="flex-1 flex flex-col justify-center space-y-6 pb-4">
         {/* Primary action buttons */}
         <div className="space-y-3">
           <Button 

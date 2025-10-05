@@ -29,8 +29,16 @@ function ChatLogic({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
   
   // Check if signin parameter is present and open drawer
   useEffect(() => {
-    if (searchParams.get('signin') === 'true' && !isAuthenticated) {
+    const signinParam = searchParams.get('signin');
+    
+    if (signinParam === 'true' && !isAuthenticated) {
+      // Open drawer immediately
       openDrawer();
+      
+      // Clean up the URL parameter after opening drawer
+      const url = new URL(window.location.href);
+      url.searchParams.delete('signin');
+      window.history.replaceState({}, '', url.toString());
     }
   }, [searchParams, isAuthenticated, openDrawer]);
 
