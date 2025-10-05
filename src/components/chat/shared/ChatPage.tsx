@@ -1,14 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { BotMessage } from "./bot-message";
 import { Chat } from "./chat";
 import { EnhancedChatInput } from "./enhanced-chat-input";
 import { GradientBackground } from "./gradient-background";
 import { UserMessage } from "./user-message";
-import { ChatStateProvider, useChatState } from "./unified-provider";
+import { ChatStateProvider, useChatState, useDrawer } from "./unified-provider";
 import { AuthErrorBoundary } from "~/components/AuthErrorBoundary";
 
 interface ChatPageProps {
@@ -22,6 +23,16 @@ function ChatLogic({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
     chat: { messages, status, setMessages },
     customMessages,
   } = useChatState();
+  
+  const { openDrawer } = useDrawer();
+  const searchParams = useSearchParams();
+  
+  // Check if signin parameter is present and open drawer
+  useEffect(() => {
+    if (searchParams.get('signin') === 'true' && !isAuthenticated) {
+      openDrawer();
+    }
+  }, [searchParams, isAuthenticated, openDrawer]);
 
   const allMessages = [...messages, ...customMessages].sort((a, b) => {
     const aTime = Number.parseInt(a.id.split("-")[1] || "0");
@@ -78,20 +89,22 @@ function ChatLogic({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
   );
 }
 
-export default function ChatPage({ 
-  isAuthenticated = false, 
-  userId, 
-  initialMessages = [] 
+export default function ChatPage({
+  isAuthenticated = false,
+  userId,
+  initialMessages = []
 }: ChatPageProps) {
   return (
     <GradientBackground>
       <AuthErrorBoundary>
-        <ChatStateProvider 
-          isAuthenticated={isAuthenticated} 
+        <ChatStateProvider
+          isAuthenticated={isAuthenticated}
           userId={userId}
           initialMessages={initialMessages}
         >
-          <ChatLogic isAuthenticated={isAuthenticated} />
+          <Suspense fallback={<div>Loading...</div>}>
+            <ChatLogic isAuthenticated={isAuthenticated} />
+          </Suspense>
         </ChatStateProvider>
       </AuthErrorBoundary>
     </GradientBackground>

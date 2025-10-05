@@ -108,7 +108,7 @@ function Header() {
 						Newsletter
 					</Link>
 					<Link
-						href="/auth/login"
+						href="/chat?signin=true"
 						className="text-gray-600 hover:text-orange-500"
 					>
 						Sign In
@@ -153,7 +153,7 @@ function Header() {
 								Newsletter
 							</Link>
 							<Link
-								href="/auth/login"
+								href="/chat?signin=true"
 								onClick={() => setIsMenuOpen(false)}
 								className="block font-medium text-gray-800 transition-colors duration-200 hover:text-orange-500"
 							>

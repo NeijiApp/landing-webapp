@@ -1,12 +1,13 @@
 "use client";
 
-import { Ban, Brain, SendHorizonal, Sparkles, User } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Ban, Brain, SendHorizonal, Sparkles, User, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
 import { EnhancedDrawer } from "./enhanced-drawer";
-import { MeditationPanel, type MeditationParams, type ParsedOverrides } from "./meditation-panel";
+import { MeditationDrawer } from "./meditation-drawer";
+import { type MeditationParams, type ParsedOverrides } from "./meditation-panel";
 import { useChatState, useDrawer } from "./unified-provider";
 
 interface EnhancedChatInputProps {
@@ -24,7 +25,6 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
     setIsGeneratingMeditation,
   } = useChatState();
 
-  const [isExpanded, setIsExpanded] = useState(false);
   const [parsedOverrides, setParsedOverrides] = useState<ParsedOverrides | null>(null);
 
   const isLoading = useMemo(
@@ -32,7 +32,13 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
     [status, isGeneratingMeditation],
   );
 
-  const { isOpen, openDrawer, closeDrawer } = useDrawer();
+  const { isOpen: isAuthDrawerOpen, openDrawer, closeDrawer } = useDrawer();
+  
+  // Meditation drawer is open when meditation mode is active
+  const isMeditationDrawerOpen = meditationMode === "meditation";
+  
+  // Any drawer is open
+  const isAnyDrawerOpen = isAuthDrawerOpen || isMeditationDrawerOpen;
 
   const getVoiceId = (gender: "male" | "female"): string => {
     return gender === "female" ? "g6xIsTj2HwM6VR4iXFCw" : "GUDYcgRAONiI1nXDcNQQ";
@@ -193,53 +199,38 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
 
   return (
     <>
-      {/* Enhanced Drawer */}
+      {/* Auth Drawer */}
       <EnhancedDrawer 
-        isOpen={isOpen} 
+        isOpen={isAuthDrawerOpen} 
         onClose={closeDrawer} 
         isAuthenticated={isAuthenticated} 
       />
 
-      {/* Meditation Panel (unchanged) */}
-      <div
-        className={cn(
-          "fixed right-1/2 bottom-[92px] z-5 w-full max-w-xl translate-x-1/2 transition-all duration-300 ease-in-out",
-          meditationMode === "meditation"
-            ? isExpanded
-              ? "h-[min(70dvh,calc(100dvh-140px))]"
-              : "h-[min(45dvh,calc(100dvh-140px))]"
-            : "h-0",
-        )}
-      >
-        <div className="h-full overflow-hidden">
-          <div className="h-full overflow-y-auto px-4 py-4">
-            <MeditationPanel
-              onGenerate={handleMeditationGenerate}
-              isGenerating={isGeneratingMeditation}
-              isExpanded={isExpanded}
-              toggleExpand={() => setIsExpanded(!isExpanded)}
-              parsedOverrides={parsedOverrides}
-            />
-          </div>
-        </div>
-      </div>
+      {/* Meditation Drawer - matches auth drawer design */}
+      <MeditationDrawer
+        isOpen={isMeditationDrawerOpen}
+        onClose={() => setMeditationMode("chat")}
+        onGenerate={handleMeditationGenerate}
+        isGenerating={isGeneratingMeditation}
+        parsedOverrides={parsedOverrides}
+      />
 
       {/* Enhanced Input Bar with Smooth Animations */}
       <div className={cn(
         "fixed right-1/2 bottom-0 z-40 w-full max-w-xl translate-x-1/2 transition-all duration-500 ease-out",
-        isOpen ? "transform translate-y-0" : "transform translate-y-0"
+        isAnyDrawerOpen ? "transform translate-y-0" : "transform translate-y-0"
       )}>
         <div className={cn(
-          "rounded-t-2xl bg-white/95 backdrop-blur-md shadow-xl border border-orange-100/50 transition-all duration-500 ease-out",
-          isOpen 
+          "rounded-t-3xl bg-white/95 backdrop-blur-md shadow-2xl border border-orange-100/50 transition-all duration-500 ease-out",
+          isAnyDrawerOpen 
             ? "p-0 pb-0 shadow-none border-transparent" 
             : "p-3 pb-[calc(12px+env(safe-area-inset-bottom))] md:p-4"
         )}>
           
-          {/* Chat Bar Content - Hide when drawer is open with smooth animation */}
+          {/* Chat Bar Content - Hide when any drawer is open with smooth animation */}
           <div className={cn(
             "transition-all ease-out",
-            isOpen 
+            isAnyDrawerOpen 
               ? "opacity-0 scale-95 pointer-events-none transform -translate-y-2 duration-200" 
               : "opacity-100 scale-100 pointer-events-auto transform translate-y-0 duration-400 delay-100"
           )}>
@@ -252,7 +243,7 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
                   variant="orange"
                   className={cn(
                     "size-11 rounded-full transition-all ease-out",
-                    isOpen 
+                    isAnyDrawerOpen 
                       ? "scale-0 opacity-0 rotate-180 duration-200" 
                       : "scale-100 opacity-100 rotate-0 duration-400 delay-150 hover:scale-105 active:scale-95"
                   )}
@@ -260,7 +251,7 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
                 >
                   <User className={cn(
                     "transition-all ease-out",
-                    isOpen ? "size-0 duration-200" : "size-6 duration-300 delay-150"
+                    isAnyDrawerOpen ? "size-0 duration-200" : "size-6 duration-300 delay-150"
                   )} />
                 </Button>
               )}
@@ -270,13 +261,12 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
                 <Button
                   onClick={() => {
                     setMeditationMode(meditationMode === "meditation" ? "chat" : "meditation");
-                    if (meditationMode === "meditation") setIsExpanded(false);
                   }}
                   size="icon"
                   variant={meditationMode === "meditation" ? "orange" : "orangeOutline"}
                   className={cn(
                     "size-12 rounded-full transition-all ease-out",
-                    isOpen 
+                    isAnyDrawerOpen 
                       ? "scale-90 opacity-70 duration-200" 
                       : "scale-100 opacity-100 duration-400 delay-100 hover:scale-105 active:scale-95"
                   )}
@@ -289,7 +279,7 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
                   />
                 </Button>
 
-                {meditationMode === "meditation" && (
+                {meditationMode === "meditation" && !isAnyDrawerOpen && (
                   <div className="absolute -right-1 -top-1 size-4 rounded-full border-2 border-white bg-orange-400">
                     <div className="size-full animate-pulse rounded-full bg-orange-300/70" />
                   </div>
@@ -299,34 +289,32 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
               {/* Input Form - Enhanced with opening/closing animation */}
               <form onSubmit={finalHandleSubmit} className={cn(
                 "relative flex-1 transition-all ease-out",
-                isOpen 
+                isAnyDrawerOpen 
                   ? "scale-95 opacity-70 duration-200" 
                   : "scale-100 opacity-100 duration-400 delay-100"
               )}>
                 <Input
-                  disabled={isLoading || isOpen}
+                  disabled={isLoading || isAnyDrawerOpen}
                   type="text"
                   value={input ?? ""}
                   onChange={handleInputChange}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey && !isOpen) {
+                    if (e.key === "Enter" && !e.shiftKey && !isAnyDrawerOpen) {
                       e.preventDefault();
                       finalHandleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
                     }
                   }}
-                  onFocus={isOpen ? undefined : onChatFocus}
+                  onFocus={isAnyDrawerOpen ? undefined : onChatFocus}
                   placeholder={
-                    isOpen 
+                    isAnyDrawerOpen 
                       ? "" 
-                      : meditationMode === "meditation"
-                        ? "Describe your meditation..."
-                        : messages.length === 0
-                          ? "Ask Neiji"
-                          : "Message"
+                      : messages.length === 0
+                        ? "Ask Neiji"
+                        : "Message"
                   }
                   className={cn(
                     "h-12 w-full rounded-full border-orange-200 bg-white/80 pl-6 pr-14 text-base transition-all focus:bg-white focus:ring-2 focus:ring-orange-300",
-                    isOpen && "cursor-default"
+                    isAnyDrawerOpen && "cursor-default"
                   )}
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -338,10 +326,10 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
                       onClick={stop} 
                       className={cn(
                         "size-9 rounded-full transition-all duration-300",
-                        isOpen && "scale-90 opacity-70"
+                        isAnyDrawerOpen && "scale-90 opacity-70"
                       )}
                     >
-                      <Ban className="size-5 animate-spin" />
+                      <Loader2 className="size-5 animate-spin" />
                     </Button>
                   ) : (
                     <Button 
@@ -350,11 +338,11 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
                       variant="orange" 
                       className={cn(
                         "size-9 rounded-full transition-all ease-out",
-                        isOpen 
+                        isAnyDrawerOpen 
                           ? "scale-0 opacity-0 rotate-180 pointer-events-none duration-200" 
                           : "scale-100 opacity-100 rotate-0 duration-400 delay-200 hover:scale-105 active:scale-95"
                       )}
-                      disabled={!((input ?? "").trim()) || isOpen}
+                      disabled={!((input ?? "").trim()) || isAnyDrawerOpen}
                     >
                       {meditationMode === "meditation" ? (
                         <Sparkles className="size-5" />

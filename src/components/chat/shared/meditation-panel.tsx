@@ -191,7 +191,7 @@ export function MeditationPanel({
 	};
 
 	const CompactView = () => (
-		<div className="space-y-3 p-4 pb-2">
+		<div className="space-y-3 p-4 pb-2 transition-all duration-300 ease-out">
 			{/* Quick Actions: Duration & Goal */}
 			<div className="flex gap-2">
 				<div className="grid flex-1 grid-cols-3 gap-1.5">
@@ -204,7 +204,7 @@ export function MeditationPanel({
 									size="sm"
 									onClick={() => setParams((prev) => ({ ...prev, duration }))}
 									className={cn(
-										"h-9 min-w-[40px] text-xs",
+										"h-9 min-w-[40px] text-xs transition-all duration-200 ease-out hover:scale-105 active:scale-95",
 										getButtonStyling(params.duration === duration, "duration"),
 									)}
 								>
@@ -233,7 +233,7 @@ export function MeditationPanel({
 										setParams((prev) => ({ ...prev, gender: gender.value }))
 									}
 									className={cn(
-										"h-9 w-full text-xs",
+										"h-9 w-full text-xs transition-all duration-200 ease-out hover:scale-105 active:scale-95",
 										getButtonStyling(params.gender === gender.value, "voiceGender"),
 									)}
 								>
@@ -263,7 +263,7 @@ export function MeditationPanel({
 										setParams((prev) => ({ ...prev, goal: goal.value }))
 									}
 									className={cn(
-										"h-9 w-full relative",
+										"h-9 w-full relative transition-all duration-200 ease-out hover:scale-105 active:scale-95",
 										getButtonStyling(params.goal === goal.value, "goal"),
 									)}
 								>
@@ -284,7 +284,7 @@ export function MeditationPanel({
 	);
 
 	const ExpandedView = () => (
-		<div className="space-y-4 p-4 pb-2">
+		<div className="space-y-4 p-4 pb-2 transition-all duration-300 ease-out">
 			{/* Duration Selection */}
 			<div className="space-y-2">
 				<div className="flex items-center gap-2 font-medium text-sm text-orange-800">
@@ -299,7 +299,7 @@ export function MeditationPanel({
 							size="sm"
 							onClick={() => setParams((prev) => ({ ...prev, duration }))}
 							className={cn(
-								"h-8 text-xs",
+								"h-8 text-xs transition-all duration-200 ease-out hover:scale-105 active:scale-95",
 								getButtonStyling(params.duration === duration, "duration"),
 							)}
 						>
@@ -328,7 +328,7 @@ export function MeditationPanel({
 								setParams((prev) => ({ ...prev, gender: gender.value }))
 							}
 							className={cn(
-								"h-8 text-xs",
+								"h-8 text-xs transition-all duration-200 ease-out hover:scale-105 active:scale-95",
 								getButtonStyling(params.gender === gender.value, "voiceGender"),
 							)}
 						>
@@ -359,7 +359,7 @@ export function MeditationPanel({
 								setParams((prev) => ({ ...prev, guidance: guidance.value }))
 							}
 							className={cn(
-								"flex h-12 flex-col items-center justify-center p-2 text-center",
+								"flex h-12 flex-col items-center justify-center p-2 text-center transition-all duration-200 ease-out hover:scale-105 active:scale-95",
 								getButtonStyling(params.guidance === guidance.value, "guidance"),
 							)}
 						>
@@ -396,7 +396,7 @@ export function MeditationPanel({
 									}))
 								}
 								className={cn(
-									"flex h-10 flex-col items-center justify-center gap-1 p-2 relative",
+								"flex h-10 flex-col items-center justify-center gap-1 p-2 relative transition-all duration-200 ease-out hover:scale-105 active:scale-95",
 									getButtonStyling(params.background === background.value, "background"),
 								)}
 							>
@@ -426,7 +426,7 @@ export function MeditationPanel({
 									}))
 								}
 								className={cn(
-									"flex h-10 flex-col items-center justify-center gap-1 p-2 relative",
+								"flex h-10 flex-col items-center justify-center gap-1 p-2 relative transition-all duration-200 ease-out hover:scale-105 active:scale-95",
 									getButtonStyling(params.background === background.value, "background"),
 								)}
 							>
@@ -459,7 +459,7 @@ export function MeditationPanel({
 									setParams((prev) => ({ ...prev, goal: goal.value }))
 								}
 								className={cn(
-									"flex h-10 items-center justify-start gap-2 p-2 relative",
+								"flex h-10 items-center justify-start gap-2 p-2 relative transition-all duration-200 ease-out hover:scale-105 active:scale-95",
 									getButtonStyling(params.goal === goal.value, "goal"),
 								)}
 							>
@@ -478,9 +478,9 @@ export function MeditationPanel({
 
 	return (
 		<TooltipProvider>
-			<div className="mx-auto w-full max-w-2xl rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50/95 to-orange-100/95 shadow-lg backdrop-blur-md overflow-hidden">
+			<div className="w-full">
 				{/* Header */}
-				<div className="flex items-center justify-between border-orange-200 border-b p-3 text-center bg-gradient-to-br from-orange-50/95 to-orange-100/95 rounded-t-2xl">
+				<div className="flex items-center justify-between border-b border-orange-100/60 p-3 text-center bg-white">
 					<div className="w-8">
 						{parsedOverrides && parsedOverrides.confidence > 0.3 && (
 							<Tooltip delayDuration={0}>
@@ -504,7 +504,7 @@ export function MeditationPanel({
 						size="icon"
 						variant="ghost"
 						onClick={toggleExpand}
-						className="text-orange-600 hover:bg-orange-200 w-8 h-8"
+						className="text-orange-600 hover:bg-orange-200 w-8 h-8 transition-all duration-200 ease-out"
 					>
 						{isExpanded ? (
 							<ChevronsDown className="size-4" />
@@ -517,7 +517,7 @@ export function MeditationPanel({
 				{isExpanded ? <ExpandedView /> : <CompactView />}
 
 				{/* Generate Buttons */}
-				<div className="space-y-2 border-orange-200 border-t p-3 mt-2 bg-gradient-to-br from-orange-50/95 to-orange-100/95 rounded-b-2xl">
+				<div className="space-y-2 border-t border-orange-100/60 p-3 mt-2 bg-white transition-all duration-300 ease-out">
 					<Button
 						onClick={handleGenerate}
 						disabled={isGenerating || isTestGenerating}
