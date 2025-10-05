@@ -1,0 +1,100 @@
+"use client";
+
+import Image from "next/image";
+import { useEffect, useRef } from "react";
+
+import { BotMessage } from "./bot-message";
+import { Chat } from "./chat";
+import { ChatInput } from "./chat-input";
+import { GradientBackground } from "./gradient-background";
+import { UserMessage } from "./user-message";
+import { ChatStateProvider, useChatState } from "./unified-provider";
+import { AuthErrorBoundary } from "~/components/AuthErrorBoundary";
+
+interface ChatPageProps {
+  isAuthenticated?: boolean;
+  userId?: string;
+  initialMessages?: any[];
+}
+
+function ChatLogic({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
+  const {
+    chat: { messages, status, setMessages },
+    customMessages,
+  } = useChatState();
+
+  const allMessages = [...messages, ...customMessages].sort((a, b) => {
+    const aTime = Number.parseInt(a.id.split("-")[1] || "0");
+    const bTime = Number.parseInt(b.id.split("-")[1] || "0");
+    return aTime - bTime;
+  });
+
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [allMessages.length, status]);
+
+  return (
+    <Chat>
+      <div className="container relative z-0 mx-auto space-y-4 px-4 pt-6 sm:px-6">
+        {allMessages.length === 0 ? (
+          <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
+            <Image src="/logo-neiji-full.png" alt="Neiji Logo" width={96} height={96} />
+            <p className="mx-auto max-w-md px-4 text-base text-muted-foreground">
+              I'm your coach for self development, Soonly sharing tailored mindfulness.
+            </p>
+          </div>
+        ) : (
+          allMessages.map((message, index) => {
+            if (message.role === "user") {
+              return <UserMessage key={message.id}>{message.content}</UserMessage>;
+            }
+
+            if (status === "streaming" && index === allMessages.length - 1 && !("audioUrl" in message)) {
+              return null;
+            }
+
+            return <BotMessage key={message.id} message={message} />;
+          })
+        )}
+        <div ref={bottomRef} />
+      </div>
+      <ChatInput
+        isAuthenticated={isAuthenticated}
+        onChatFocus={() => {
+          if (allMessages.length === 0) {
+            setMessages([
+              {
+                id: "msg-originalmessage",
+                content: "Hey ! What is the one thing you want to improve in your life today ?",
+                role: "assistant",
+              },
+            ]);
+          }
+        }}
+      />
+    </Chat>
+  );
+}
+
+export default function ChatPage({ 
+  isAuthenticated = false, 
+  userId, 
+  initialMessages = [] 
+}: ChatPageProps) {
+  return (
+    <GradientBackground>
+      <AuthErrorBoundary>
+        <ChatStateProvider 
+          isAuthenticated={isAuthenticated} 
+          userId={userId}
+          initialMessages={initialMessages}
+        >
+          <ChatLogic isAuthenticated={isAuthenticated} />
+        </ChatStateProvider>
+      </AuthErrorBoundary>
+    </GradientBackground>
+  );
+}
+

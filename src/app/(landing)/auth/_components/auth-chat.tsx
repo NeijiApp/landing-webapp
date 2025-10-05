@@ -4,9 +4,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "~/utils/supabase/client";
 
-import { BotMessage } from "../../chat/_components/bot-message";
-import { ChatInput } from "../../chat/_components/chat-input";
-import { UserMessage } from "../../chat/_components/user-message";
+import { BotMessage } from "~/components/chat/shared/bot-message";
+import { UserMessage } from "~/components/chat/shared/user-message";
 
 // Composant simple pour l'input d'auth
 function AuthInput({

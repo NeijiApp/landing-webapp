@@ -7,11 +7,11 @@ import { openai } from "../services/openrouter";
 
 export interface ParsedMeditationParams {
   duration?: number; // in minutes
-  goal?: 'calm' | 'focus' | 'sleep' | 'energy' | 'healing' | 'stress' | 'anxiety';
+  goal?: 'calm' | 'focus' | 'sleep' | 'morning' | 'energy' | 'healing' | 'stress' | 'anxiety';
   voiceGender?: 'male' | 'female';
   voiceStyle?: 'calm' | 'energetic' | 'soothing' | 'focused';
   guidanceLevel?: 'beginner' | 'confirmed' | 'expert';
-  background?: 'silence' | 'nature' | 'ambient' | 'waves' | 'rain' | 'focus' | 'relax';
+  background?: 'silence' | 'waves' | 'rain' | 'focus' | 'relax';
   confidence: number; // 0-1 score of how confident the parser is
   detectedParams: string[]; // List of which parameters were explicitly mentioned
   reasoning: string; // Explanation of what was detected and why
@@ -49,6 +49,7 @@ DURATION:
 GOAL:
 - "focus/concentration/work/study" → "focus"
 - "sleep/rest/insomnia/bedtime" → "sleep"
+- "morning/wake up/start day/energize" → "morning"
 - "stress/anxiety/worry" → "calm" or "stress"
 - "energy/motivation/awake" → "energy"
 - "pain/healing/recovery" → "healing"
@@ -74,19 +75,19 @@ GUIDANCE LEVEL:
 
 BACKGROUND:
 - Sleep: "rain", "waves", "silence"
-- Focus: "silence", "focus", "ambient"
-- Calm: "nature", "waves", "ambient"
+- Focus: "silence", "focus"
+- Calm: "waves", "rain", "relax"
 - Energy: "silence", "focus"
 
 RESPONSE FORMAT:
 Respond with a JSON object containing:
 {
   "duration": number | null,
-  "goal": "calm|focus|sleep|energy|healing|stress|anxiety" | null,
+  "goal": "calm|focus|sleep|morning|energy|healing|stress|anxiety" | null,
   "voiceGender": "male|female" | null,
   "voiceStyle": "calm|energetic|soothing|focused" | null,
   "guidanceLevel": "beginner|confirmed|expert" | null,
-  "background": "silence|nature|ambient|waves|rain|focus|relax" | null,
+  "background": "silence|waves|rain|focus|relax" | null,
   "confidence": 0.0-1.0,
   "detectedParams": ["param1", "param2"],
   "reasoning": "Explanation of inferences and why they fit together"
@@ -163,19 +164,19 @@ Consider the user's intent, emotional state, and what would create the best medi
     parsed: ParsedMeditationParams,
     defaults: {
       duration: number;
-      goal: string;
+      goal: 'calm' | 'focus' | 'sleep' | 'morning' | 'energy' | 'healing' | 'stress' | 'anxiety';
       voiceGender: 'male' | 'female';
-      guidance: string;
-      background: string;
+      guidance: 'beginner' | 'confirmed' | 'expert';
+      background: 'silence' | 'waves' | 'rain' | 'focus' | 'relax';
     }
   ): {
     finalParams: {
       duration: number;
-      goal: string;
+      goal: 'calm' | 'focus' | 'sleep' | 'morning' | 'energy' | 'healing' | 'stress' | 'anxiety';
       voiceGender: 'male' | 'female';
       voiceStyle: string;
-      guidanceLevel: string;
-      background: string;
+      guidanceLevel: 'beginner' | 'confirmed' | 'expert';
+      background: 'silence' | 'waves' | 'rain' | 'focus' | 'relax';
     };
     overrides: string[]; // Which parameters were overridden by user input
   } {

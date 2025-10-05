@@ -123,7 +123,6 @@ export function MeditationPanel({
 		goal: "calm",
 	});
 	const [isTestGenerating, setIsTestGenerating] = useState(false);
-	// TTS provider is fixed to ElevenLabs; remove switching UI
 
 	// Helper function to check if a parameter was overridden by user input
 	const isOverridden = (paramName: string): boolean => {
@@ -154,8 +153,6 @@ export function MeditationPanel({
 	const handleGenerate = () => {
 		onGenerate(params);
 	};
-
-	// Removed TTS provider switch and status polling
 
 	const handleTestGenerate = async () => {
 		setIsTestGenerating(true);
@@ -332,12 +329,13 @@ export function MeditationPanel({
 							}
 							className={cn(
 								"h-8 text-xs",
-								params.gender === gender.value
-									? "bg-orange-500 text-white"
-									: "border-orange-300 text-orange-700",
+								getButtonStyling(params.gender === gender.value, "voiceGender"),
 							)}
 						>
 							{gender.label}
+							{isOverridden("voiceGender") && params.gender === gender.value && (
+								<span className="ml-1 text-xs">✨</span>
+							)}
 						</Button>
 					))}
 				</div>
@@ -362,13 +360,14 @@ export function MeditationPanel({
 							}
 							className={cn(
 								"flex h-12 flex-col items-center justify-center p-2 text-center",
-								params.guidance === guidance.value
-									? "bg-orange-500 text-white"
-									: "border-orange-300 text-orange-700",
+								getButtonStyling(params.guidance === guidance.value, "guidance"),
 							)}
 						>
 							<span className="font-medium text-xs">{guidance.label}</span>
 							<span className="text-[10px] opacity-70 leading-tight">{guidance.description}</span>
+							{isOverridden("guidance") && params.guidance === guidance.value && (
+								<span className="absolute -top-1 -right-1 text-xs">✨</span>
+							)}
 						</Button>
 					))}
 				</div>
@@ -397,14 +396,15 @@ export function MeditationPanel({
 									}))
 								}
 								className={cn(
-									"flex h-10 flex-col items-center justify-center gap-1 p-2",
-									params.background === background.value
-										? "bg-orange-500 text-white"
-										: "border-orange-300 text-orange-700",
+									"flex h-10 flex-col items-center justify-center gap-1 p-2 relative",
+									getButtonStyling(params.background === background.value, "background"),
 								)}
 							>
 								<Icon className="size-3" />
 								<span className="text-[10px]">{background.label}</span>
+								{isOverridden("background") && params.background === background.value && (
+									<span className="absolute -top-1 -right-1 text-xs">✨</span>
+								)}
 							</Button>
 						);
 					})}
@@ -426,14 +426,15 @@ export function MeditationPanel({
 									}))
 								}
 								className={cn(
-									"flex h-10 flex-col items-center justify-center gap-1 p-2",
-									params.background === background.value
-										? "bg-orange-500 text-white"
-										: "border-orange-300 text-orange-700",
+									"flex h-10 flex-col items-center justify-center gap-1 p-2 relative",
+									getButtonStyling(params.background === background.value, "background"),
 								)}
 							>
 								<Icon className="size-3" />
 								<span className="text-[10px]">{background.label}</span>
+								{isOverridden("background") && params.background === background.value && (
+									<span className="absolute -top-1 -right-1 text-xs">✨</span>
+								)}
 							</Button>
 						);
 					})}
@@ -458,14 +459,15 @@ export function MeditationPanel({
 									setParams((prev) => ({ ...prev, goal: goal.value }))
 								}
 								className={cn(
-									"flex h-10 items-center justify-start gap-2 p-2",
-									params.goal === goal.value
-										? "bg-orange-500 text-white"
-										: "border-orange-300 text-orange-700",
+									"flex h-10 items-center justify-start gap-2 p-2 relative",
+									getButtonStyling(params.goal === goal.value, "goal"),
 								)}
 							>
 								<Icon className="size-3" />
 								<span className="text-xs">{goal.label}</span>
+								{isOverridden("goal") && params.goal === goal.value && (
+									<span className="absolute -top-1 -right-1 text-xs">✨</span>
+								)}
 							</Button>
 						);
 					})}
@@ -554,10 +556,9 @@ export function MeditationPanel({
 							</>
 						)}
 					</Button>
-
-                    {/* TTS switching button removed */}
 				</div>
 			</div>
 		</TooltipProvider>
 	);
 }
+

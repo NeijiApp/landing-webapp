@@ -20,7 +20,7 @@ const meditationSchema = z.object({
     .optional()
     .default("confirmed"),
   goal: z
-    .enum(["calm", "focus", "sleep", "energy", "healing", "stress", "anxiety"])
+    .enum(["calm", "focus", "sleep", "morning", "energy", "healing", "stress", "anxiety"])
     .optional()
     .default("calm"),
   gender: z.enum(["male", "female"]).optional().default("female"),

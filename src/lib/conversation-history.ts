@@ -1,4 +1,5 @@
 import { createClient } from "~/utils/supabase/client";
+import { withAuthErrorHandling } from "~/utils/supabase/auth-error-handler";
 
 export interface ConversationMessage {
 	id: string;
@@ -69,7 +70,7 @@ export class ConversationHistory {
 			`📚 [SERVICE] Récupération historique - userId: ${userId}, limit: ${limit}`,
 		);
 
-		try {
+		return withAuthErrorHandling(async () => {
 			console.log("🔍 [SERVICE] Requête Supabase...");
 			const { data, error } = await this.supabase
 				.from("conversation_history")
@@ -98,17 +99,14 @@ export class ConversationHistory {
 
 			console.log(`✅ [SERVICE] Messages transformés:`, messages.length);
 			return messages;
-		} catch (error) {
-			console.error("💥 [SERVICE] Erreur récupération historique:", error);
-			return []; // Retourne un tableau vide en cas d'erreur
-		}
+		}, []); // Return empty array as fallback value for auth errors
 	} /**
 	 * Récupère l'ID de l'utilisateur connecté
 	 */
 	async getCurrentUserId(): Promise<number | null> {
 		console.log("👤 [SERVICE] Récupération userId...");
 
-		try {
+		return withAuthErrorHandling(async () => {
 			console.log("🔐 [SERVICE] Vérification auth user...");
 
 			// Ajout d'un timeout pour éviter le blocage infini
@@ -134,7 +132,7 @@ export class ConversationHistory {
                     return null;
                 }
                 console.warn("⚠️ [SERVICE] Auth error:", authError);
-                return null;
+                throw authError; // Let the error handler deal with it
             }
 
 			if (!user) {
@@ -174,10 +172,7 @@ export class ConversationHistory {
 
 			console.log("✅ [SERVICE] UserId trouvé:", data.id);
 			return data.id;
-		} catch (error) {
-			console.error("💥 [SERVICE] Erreur récupération user ID:", error);
-			return null;
-		}
+		}, null); // Return null as fallback value for auth errors
 	}
 }
 

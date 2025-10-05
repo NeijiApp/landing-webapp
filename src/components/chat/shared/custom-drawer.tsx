@@ -39,7 +39,13 @@ export function CustomDrawer({
 /**
  * Content for the registration drawer with state management
  */
-export function AskRegistrationDrawerContent({ onClose }: { onClose: () => void }) {
+export function AskRegistrationDrawerContent({ 
+  onClose, 
+  isAuthenticated = false 
+}: { 
+  onClose: () => void;
+  isAuthenticated?: boolean;
+}) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -57,6 +63,24 @@ export function AskRegistrationDrawerContent({ onClose }: { onClose: () => void 
       },
     });
   };
+
+  // If authenticated, show different content or don't show anything
+  if (isAuthenticated) {
+    return (
+      <div className="flex h-full flex-col justify-center items-center space-y-4">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-gray-900">You're all set!</h3>
+          <p className="text-sm text-gray-600 mt-1">You're already logged in to Neiji</p>
+        </div>
+        <Button 
+          onClick={onClose}
+          className="bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-xl px-6"
+        >
+          Continue chatting
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full flex-col justify-between">

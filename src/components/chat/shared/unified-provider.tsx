@@ -62,6 +62,20 @@ export const useChatState = () => {
 	return context;
 };
 
+/**
+ * Drawer hook for backward compatibility
+ */
+export function useDrawer() {
+	const { isDrawerOpen, setIsDrawerOpen } = useChatState();
+	
+	return {
+		isOpen: isDrawerOpen,
+		toggleDrawer: () => setIsDrawerOpen(!isDrawerOpen),
+		openDrawer: () => setIsDrawerOpen(true),
+		closeDrawer: () => setIsDrawerOpen(false),
+	};
+}
+
 interface ChatStateProviderProps {
 	children: React.ReactNode;
 	isAuthenticated?: boolean;

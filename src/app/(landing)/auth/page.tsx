@@ -2,14 +2,14 @@
 
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { createClient } from "~/utils/supabase/client";
 import { generateStableId } from "~/lib/utils/stable-id";
 
-import { BotMessage } from "../chat/_components/bot-message";
-import { Chat } from "../chat/_components/chat";
-import { GradientBackground } from "../chat/_components/gradient-background";
-import { UserMessage } from "../chat/_components/user-message";
+import { BotMessage } from "~/components/chat/shared/bot-message";
+import { Chat } from "~/components/chat/shared/chat";
+import { GradientBackground } from "~/components/chat/shared/gradient-background";
+import { UserMessage } from "~/components/chat/shared/user-message";
 import { AuthInput } from "./_components/auth-input";
 
 // Logique d'authentification (équivalent à ChatLogic)
@@ -566,7 +566,9 @@ function AuthLogic() {
 export default function AuthPage() {
 	return (
 		<GradientBackground>
-			<AuthLogic />
+			<Suspense fallback={<div>Loading...</div>}>
+				<AuthLogic />
+			</Suspense>
 		</GradientBackground>
 	);
 }

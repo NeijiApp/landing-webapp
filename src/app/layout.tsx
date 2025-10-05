@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
 
 import { TRPCReactProvider } from "~/trpc/react";
+import { GlobalErrorHandler } from "~/components/GlobalErrorHandler";
 
 export const metadata: Metadata = {
 	title: "Neiji",
@@ -43,6 +44,7 @@ export default function RootLayout({
 	return (
 		<html lang="en" className={`${roboto.variable}`}>
 			<body>
+				<GlobalErrorHandler />
 				<TRPCReactProvider>{children}</TRPCReactProvider>
 			</body>
 		</html>
