@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Component, ReactNode } from "react";
+import React, { Component, type ReactNode } from "react";
 import { handleAuthError } from "~/utils/supabase/auth-error-handler";
 
 interface Props {

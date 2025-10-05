@@ -70,7 +70,7 @@ export class ConversationHistory {
 			`📚 [SERVICE] Récupération historique - userId: ${userId}, limit: ${limit}`,
 		);
 
-		return withAuthErrorHandling(async () => {
+		const result = await withAuthErrorHandling(async () => {
 			console.log("🔍 [SERVICE] Requête Supabase...");
 			const { data, error } = await this.supabase
 				.from("conversation_history")
@@ -100,6 +100,8 @@ export class ConversationHistory {
 			console.log(`✅ [SERVICE] Messages transformés:`, messages.length);
 			return messages;
 		}, []); // Return empty array as fallback value for auth errors
+		
+		return result || [];
 	} /**
 	 * Récupère l'ID de l'utilisateur connecté
 	 */

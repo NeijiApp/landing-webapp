@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 
 import { BotMessage } from "./bot-message";
 import { Chat } from "./chat";
-import { ChatInput } from "./chat-input";
+import { EnhancedChatInput } from "./enhanced-chat-input";
 import { GradientBackground } from "./gradient-background";
 import { UserMessage } from "./user-message";
 import { ChatStateProvider, useChatState } from "./unified-provider";
@@ -60,7 +60,7 @@ function ChatLogic({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
         )}
         <div ref={bottomRef} />
       </div>
-      <ChatInput
+      <EnhancedChatInput
         isAuthenticated={isAuthenticated}
         onChatFocus={() => {
           if (allMessages.length === 0) {
