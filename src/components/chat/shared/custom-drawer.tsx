@@ -5,6 +5,7 @@ import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import { useRouter } from "next/navigation";
 import { createClient } from "~/utils/supabase/client";
+import { getOAuthRedirectUrl } from "~/lib/utils/site-url";
 
 interface CustomDrawerProps {
 	isOpen: boolean;
@@ -55,11 +56,15 @@ export function AskRegistrationDrawerContent({
   };
 
   const continueWithGoogle = async () => {
+    const redirectUrl = getOAuthRedirectUrl("/protected/chat");
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/protected/chat`,
-        queryParams: { prompt: "consent" },
+        redirectTo: redirectUrl,
+        queryParams: { 
+          prompt: "select_account",
+          access_type: "offline"
+        },
       },
     });
   };

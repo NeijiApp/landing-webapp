@@ -1,0 +1,17 @@
+{
+  "recommendations": [
+    "github.vscode-pull-request-github",
+    "github.vscode-github-actions",
+    "gruntfuggly.todo-tree",
+    "streetsidesoftware.code-spell-checker",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "biomejs.biome",
+    "prisma.prisma",
+    "unifiedjs.vscode-mdx"
+  ]
+}
+
+
+
