@@ -1,0 +1,11 @@
+{
+  "functions": {
+    "src/app/api/meditation/route.ts": {
+      "maxDuration": 120
+    },
+    "src/app/api/debug-meditation/route.ts": {
+      "maxDuration": 30
+    }
+  },
+  "regions": ["iad1"]
+}

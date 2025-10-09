@@ -156,6 +156,7 @@ export async function generateConcatenatedMeditation(
 			`🔧 Calling assembly service at ${assemblyServiceUrl} with ${assemblySegments.length} segments`,
 		);
 
+		console.log(`⏱️ Calling assembly service with 45s timeout...`);
 		const response = await fetch(`${assemblyServiceUrl}/api/assembly/create`, {
 			method: "POST",
 			headers: {
@@ -164,6 +165,7 @@ export async function generateConcatenatedMeditation(
 			body: JSON.stringify({
 				segments: assemblySegments,
 			}),
+			signal: AbortSignal.timeout(45000), // 45 second timeout
 		});
 
 		if (!response.ok) {

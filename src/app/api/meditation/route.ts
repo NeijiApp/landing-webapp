@@ -30,7 +30,7 @@ async function checkAssemblyServiceHealth(): Promise<boolean> {
   try {
     const response = await fetch(`${env.ASSEMBLY_SERVICE_URL}/api/health`, {
       method: "GET",
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(8000), // Increased timeout
     });
     return response.ok;
   } catch (error) {
@@ -40,18 +40,29 @@ async function checkAssemblyServiceHealth(): Promise<boolean> {
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  
   try {
-    // Check assembly service health first
+    // Check assembly service health first with timeout
+    console.log("🔍 Checking assembly service health...");
     const isAssemblyHealthy = await checkAssemblyServiceHealth();
     if (!isAssemblyHealthy) {
+      console.error("❌ Assembly service health check failed");
       return NextResponse.json(
         {
           error: "Assembly service unavailable",
           details: `Please ensure the assembly service is running at ${env.ASSEMBLY_SERVICE_URL}. Run 'pnpm run assembly:start' to start it.`,
+          debug: {
+            assembly_url: env.ASSEMBLY_SERVICE_URL,
+            timestamp: new Date().toISOString(),
+            elapsed_ms: Date.now() - startTime
+          }
         },
         { status: 503 },
       );
     }
+    
+    console.log("✅ Assembly service is healthy, proceeding with meditation generation");
 
     const body = await request.json();
     const { duration, prompt, voiceId, background, guidance, goal, gender } =
