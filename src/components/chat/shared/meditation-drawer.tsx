@@ -20,6 +20,7 @@ interface MeditationDrawerProps {
  */
 export function MeditationDrawer({
   isOpen,
+  onClose,
   onGenerate,
   isGenerating,
   parsedOverrides,
@@ -96,19 +97,15 @@ export function MeditationDrawer({
               <div className="h-1.5 w-12 rounded-full bg-orange-200" />
             </div>
             
-            {/* Content area - no scroll in compact mode, scrollable when expanded */}
-            <div 
-              className={cn(
-                "px-4 transition-all duration-500 ease-out",
-                isExpanded ? "flex-1 overflow-y-auto" : "overflow-visible"
-              )}
-            >
+            {/* Content area - MeditationPanel manages its own scroll */}
+            <div className="flex-1 px-4 overflow-hidden">
               <MeditationPanel
                 onGenerate={onGenerate}
                 isGenerating={isGenerating}
                 isExpanded={isExpanded}
                 toggleExpand={() => setIsExpanded(!isExpanded)}
                 parsedOverrides={parsedOverrides}
+                onClose={onClose}
               />
             </div>
           </div>

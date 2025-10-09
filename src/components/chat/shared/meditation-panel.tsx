@@ -46,6 +46,7 @@ interface MeditationPanelProps {
 	isExpanded: boolean;
 	toggleExpand: () => void;
 	parsedOverrides?: ParsedOverrides | null;
+	onClose?: () => void;
 }
 
 const DURATION_OPTIONS = [2, 3, 5, 7, 10, 15];
@@ -114,6 +115,7 @@ export function MeditationPanel({
 	isExpanded,
 	toggleExpand,
 	parsedOverrides,
+	onClose,
 }: MeditationPanelProps) {
 	const [params, setParams] = useState<MeditationParams>({
 		duration: 5,
@@ -152,6 +154,10 @@ export function MeditationPanel({
 
 	const handleGenerate = () => {
 		onGenerate(params);
+		// Close drawer after generation starts
+		if (onClose) {
+			onClose();
+		}
 	};
 
 	const handleTestGenerate = async () => {
@@ -473,14 +479,37 @@ export function MeditationPanel({
 					})}
 				</div>
 			</div>
+
+			{/* Quick Test Button - At bottom of scroll */}
+			<div className="pt-2 pb-4">
+				<Button
+					onClick={handleTestGenerate}
+					disabled={isGenerating || isTestGenerating}
+					className="w-full bg-blue-500 py-2 font-medium text-xs text-white hover:bg-blue-600 transition-all duration-200 ease-out hover:scale-105 active:scale-95"
+					size="sm"
+					variant="outline"
+				>
+					{isTestGenerating ? (
+						<>
+							<div className="mr-2 h-3 w-3 animate-spin rounded-full border-blue-500 border-b-2" />
+							Testing...
+						</>
+					) : (
+						<>
+							<Zap className="mr-2 size-3" />
+							Quick Test (1 sentence)
+						</>
+					)}
+				</Button>
+			</div>
 		</div>
 	);
 
 	return (
 		<TooltipProvider>
-			<div className="w-full">
+			<div className="w-full h-full flex flex-col">
 				{/* Header */}
-				<div className="flex items-center justify-between border-b border-orange-100/60 p-3 text-center bg-white">
+				<div className="flex items-center justify-between border-b border-orange-100/60 p-3 text-center bg-white/0 flex-shrink-0">
 					<div className="w-8">
 						{parsedOverrides && parsedOverrides.confidence > 0.3 && (
 							<Tooltip delayDuration={0}>
@@ -514,17 +543,17 @@ export function MeditationPanel({
 					</Button>
 				</div>
 
-				{isExpanded ? <ExpandedView /> : <CompactView />}
+				{/* Content - Scrollable in expanded mode */}
+				<div className={cn("flex-1", isExpanded && "overflow-y-auto")}>
+					{isExpanded ? <ExpandedView /> : <CompactView />}
+				</div>
 
-				{/* Generate Buttons */}
-				<div className={cn(
-					"border-t border-orange-100/60 p-3 mt-0 bg-white transition-all duration-300 ease-out",
-					isExpanded ? "space-y-2" : "space-y-0"
-				)}>
+				{/* Generate Button - Sticky at bottom */}
+				<div className="border-t border-orange-100/60 p-3 bg-white/0 transition-all duration-300 ease-out flex-shrink-0">
 					<Button
 						onClick={handleGenerate}
 						disabled={isGenerating || isTestGenerating}
-						className="w-full bg-orange-500 py-2.5 font-medium text-sm text-white hover:bg-orange-600"
+						className="w-full bg-orange-500 py-2.5 font-medium text-sm text-white hover:bg-orange-600 transition-all duration-200 ease-out hover:scale-105 active:scale-95"
 						size="default"
 					>
 						{isGenerating ? (
@@ -539,29 +568,6 @@ export function MeditationPanel({
 							</>
 						)}
 					</Button>
-
-					{/* Quick Test button - Only visible in expanded mode */}
-					{isExpanded && (
-						<Button
-							onClick={handleTestGenerate}
-							disabled={isGenerating || isTestGenerating}
-							className="w-full bg-blue-500 py-2 font-medium text-xs text-white hover:bg-blue-600"
-							size="sm"
-							variant="outline"
-						>
-							{isTestGenerating ? (
-								<>
-									<div className="mr-2 h-3 w-3 animate-spin rounded-full border-blue-500 border-b-2" />
-									Testing...
-								</>
-							) : (
-								<>
-									<Zap className="mr-2 size-3" />
-									Quick Test (1 sentence)
-								</>
-							)}
-						</Button>
-					)}
 				</div>
 			</div>
 		</TooltipProvider>

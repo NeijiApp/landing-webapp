@@ -165,8 +165,12 @@ export function ChatStateProvider({
       const trimmed = input.trim();
       if (!trimmed) return;
       
-      // Append user message locally
-      const userMessage: Message = { id: nanoid(), role: "user", content: trimmed } as any;
+      // Append user message locally with timestamp for ordering
+      const userMessage: Message = { 
+        id: `user-${Date.now()}-${nanoid()}`, 
+        role: "user", 
+        content: trimmed 
+      } as any;
       const updatedMessages = [...messages, userMessage];
       setMessages(updatedMessages);
       
@@ -202,7 +206,7 @@ export function ChatStateProvider({
         
         // Handle streaming response - parse AI SDK data stream format
         let assistantContent = "";
-        const assistantId = nanoid();
+        const assistantId = `assistant-${Date.now()}-${nanoid()}`;
         
         if (response.body) {
           const reader = response.body.getReader();
@@ -266,7 +270,7 @@ export function ChatStateProvider({
         
         // Add error message
         const errorMessage: Message = {
-          id: nanoid(),
+          id: `error-${Date.now()}-${nanoid()}`,
           role: "assistant",
           content: "Sorry, I encountered an error. Please try again."
         } as any;

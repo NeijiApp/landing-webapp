@@ -19,17 +19,7 @@ export function MeditationLoadingAnimation({
   message = "Crafting your meditation...",
   onCancel
 }: MeditationLoadingAnimationProps) {
-  const [breathePhase, setBreathePhase] = useState<"inhale" | "exhale">("inhale");
   const [dots, setDots] = useState("");
-
-  // Breathing cycle: 4s inhale, 4s exhale
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setBreathePhase((prev) => (prev === "inhale" ? "exhale" : "inhale"));
-    }, 4000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   // Animated dots for text
   useEffect(() => {
@@ -44,38 +34,44 @@ export function MeditationLoadingAnimation({
   }, []);
 
   return (
-    <div className={cn("relative flex flex-col items-center justify-center gap-6 py-8", className)}>
-      {/* Breathing Circle Container */}
-      <div className="relative flex items-center justify-center">
-        {/* Outer glow ring */}
+    <div className={cn("relative flex flex-col items-center justify-center gap-6 py-6", className)}>
+      {/* Breathing Circle Container - Fixed size to prevent bubble resizing */}
+      <div className="relative flex items-center justify-center w-36 h-36">
+        {/* Outer glow ring - Pure CSS animation */}
         <div
-          className={cn(
-            "absolute rounded-full bg-gradient-to-br from-orange-400/30 to-orange-600/30 blur-xl transition-all duration-[4000ms] ease-in-out",
-            breathePhase === "inhale" ? "h-32 w-32 scale-110" : "h-24 w-24 scale-90"
-          )}
+          className="absolute rounded-full bg-gradient-to-br from-orange-400/30 to-orange-600/30 blur-xl"
+          style={{
+            width: '128px',
+            height: '128px',
+            animation: 'breathe-glow 8s ease-in-out infinite',
+          }}
         />
         
-        {/* Middle ring */}
+        {/* Middle ring - Pure CSS animation */}
         <div
-          className={cn(
-            "absolute rounded-full border-2 border-orange-300/40 transition-all duration-[4000ms] ease-in-out",
-            breathePhase === "inhale" ? "h-28 w-28 opacity-60" : "h-20 w-20 opacity-40"
-          )}
+          className="absolute rounded-full border-2 border-orange-300/40"
+          style={{
+            width: '112px',
+            height: '112px',
+            animation: 'breathe-ring 8s ease-in-out infinite',
+          }}
         />
         
-        {/* Main breathing circle */}
+        {/* Main breathing circle - Pure CSS animation */}
         <div
-          className={cn(
-            "relative flex items-center justify-center rounded-full bg-gradient-to-br from-orange-400 to-orange-600 shadow-lg transition-all duration-[4000ms] ease-in-out",
-            breathePhase === "inhale" ? "h-24 w-24" : "h-16 w-16"
-          )}
+          className="relative flex items-center justify-center rounded-full bg-gradient-to-br from-orange-400 to-orange-600 shadow-lg"
+          style={{
+            width: '96px',
+            height: '96px',
+            animation: 'breathe-main 8s ease-in-out infinite',
+          }}
         >
-          {/* Inner light pulse */}
+          {/* Inner light pulse - Pure CSS animation */}
           <div
-            className={cn(
-              "absolute inset-0 rounded-full bg-white transition-opacity duration-[4000ms] ease-in-out",
-              breathePhase === "inhale" ? "opacity-30" : "opacity-10"
-            )}
+            className="absolute inset-0 rounded-full bg-white"
+            style={{
+              animation: 'breathe-light 8s ease-in-out infinite',
+            }}
           />
           
           {/* Center dot */}
@@ -83,16 +79,61 @@ export function MeditationLoadingAnimation({
         </div>
       </div>
 
+      <style jsx>{`
+        @keyframes breathe-glow {
+          0%, 100% { transform: scale(0.9); opacity: 0.7; }
+          50% { transform: scale(1.1); opacity: 0.9; }
+        }
+        
+        @keyframes breathe-ring {
+          0%, 100% { transform: scale(0.71); opacity: 0.4; }
+          50% { transform: scale(1); opacity: 0.6; }
+        }
+        
+        @keyframes breathe-main {
+          0%, 100% { transform: scale(0.67); }
+          50% { transform: scale(1); }
+        }
+        
+        @keyframes breathe-light {
+          0%, 100% { opacity: 0.1; }
+          50% { opacity: 0.3; }
+        }
+      `}</style>
+
       {/* Loading Text */}
       <div className="flex flex-col items-center gap-2">
         <p className="text-sm font-medium text-white">
           {message}
           <span className="inline-block w-6 text-left">{dots}</span>
         </p>
-        <p className="text-xs text-white/70">
-          {breathePhase === "inhale" ? "Breathe in" : "Breathe out"}
-        </p>
+        <div className="relative h-5 w-24 text-xs text-white/70">
+          <span 
+            className="absolute left-0 right-0 text-center"
+            style={{ animation: 'breathe-text-in 8s ease-in-out infinite' }}
+          >
+            Breathe in
+          </span>
+          <span 
+            className="absolute left-0 right-0 text-center"
+            style={{ animation: 'breathe-text-out 8s ease-in-out infinite' }}
+          >
+            Breathe out
+          </span>
+        </div>
       </div>
+
+      <style jsx>{`
+        @keyframes breathe-text-in {
+          0%, 25% { opacity: 1; }
+          50%, 100% { opacity: 0; }
+        }
+        
+        @keyframes breathe-text-out {
+          0%, 50% { opacity: 0; }
+          75%, 100% { opacity: 1; }
+        }
+      `}</style>
 
       {/* Progress indicators - small dots */}
       <div className="flex gap-2">

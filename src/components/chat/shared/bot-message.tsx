@@ -111,10 +111,10 @@ export function BotMessage({ message }: BotMessageProps) {
 
 			{/* Message Bubble */}
 			<div className={cn(
-				"whitespace-pre-line break-normal rounded-tl-xl rounded-tr-xl rounded-br-xl rounded-bl-none bg-orange-500 px-4 py-2 text-white shadow",
+				"whitespace-pre-line break-normal rounded-tl-xl rounded-tr-xl rounded-br-xl rounded-bl-none bg-orange-500 text-white shadow",
 				message.isGeneratingMeditation 
-					? "w-fit max-w-sm lg:max-w-md" // Slightly wider for loading animation
-					: "w-fit max-w-xs lg:max-w-md" // Normal width for text
+					? "w-[360px] min-h-[280px] px-6 py-4" // Fixed size to contain breathing circle
+					: "w-fit max-w-xs lg:max-w-md px-4 py-2" // Normal width for text
 			)}>
 				{message.isGeneratingMeditation ? (
 					// Show loading animation inside the message bubble

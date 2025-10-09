@@ -90,12 +90,19 @@ export class ConversationHistory {
 				"enregistrements",
 			);
 
-			const messages = (data || []).map((record) => ({
-				id: record.id.toString(),
-				role: record.message_role as "user" | "assistant",
+		const messages = (data || []).map((record) => {
+			// Generate ID from created_at timestamp to maintain chronological order
+			const timestamp = record.created_at ? new Date(record.created_at).getTime() : Date.now();
+			const role = record.message_role as "user" | "assistant";
+			const idPrefix = record.audio_url ? 'meditation' : role;
+			
+			return {
+				id: `${idPrefix}-${timestamp}-${record.id}`,
+				role,
 				content: record.message_content,
 				audioUrl: record.audio_url || undefined,
-			}));
+			};
+		});
 
 			console.log(`✅ [SERVICE] Messages transformés:`, messages.length);
 			return messages;

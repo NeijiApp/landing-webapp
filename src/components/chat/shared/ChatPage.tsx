@@ -42,43 +42,39 @@ function ChatLogic({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
     }
   }, [searchParams, isAuthenticated, openDrawer]);
 
-  // Combine and sort messages by creation time
-  // Extract timestamp from IDs or use a sequential order
+  // Combine and sort messages by creation time extracted from IDs
   const allMessages = [...messages, ...customMessages].sort((a, b) => {
-    // Try to extract timestamp from ID formats:
-    // - Regular nanoid: no timestamp, use 0
-    // - Timestamp-based: "prefix-{timestamp}" or "prefix-{timestamp}-suffix"
+    // Extract timestamp from ID formats:
+    // - New format: "prefix-{timestamp}-{nanoid}" 
+    // - Old format: "prefix-{timestamp}"
+    // - Legacy format: just nanoid (no timestamp)
     const getTimestamp = (id: string): number => {
-      // Match patterns like: user-1234567890, meditation-1234567890, loading-1234567890, error-1234567890
-      const timestampMatch = id.match(/-(\d{13,})/); // 13+ digits for millisecond timestamp
+      // Match patterns like: user-1234567890123-abc, loading-1234567890123, etc.
+      const timestampMatch = id.match(/-(\d{13})/); // 13 digits for millisecond timestamp
       if (timestampMatch?.[1]) {
         return Number.parseInt(timestampMatch[1], 10);
       }
-      // For messages without timestamps, return 0 (they appear first)
+      // For legacy messages without timestamps (like msg-originalmessage), use 0
       return 0;
     };
     
     const aTime = getTimestamp(a.id);
     const bTime = getTimestamp(b.id);
     
-    // If both have no timestamp (0), maintain original order
-    if (aTime === 0 && bTime === 0) return 0;
-    // Messages with timestamps come after those without
-    if (aTime === 0) return -1;
-    if (bTime === 0) return 1;
-    // Sort by timestamp
+    // Sort by timestamp (messages with 0 timestamp stay at the beginning)
     return aTime - bTime;
   });
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    // Scroll to bottom instantly when messages change
+    bottomRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
   }, [allMessages.length, status]);
 
   return (
     <Chat>
-      <div className="container relative z-0 mx-auto space-y-4 px-4 pt-6 sm:px-6">
+      <div className="container relative z-0 mx-auto space-y-4 px-4 pt-6 pb-40 sm:px-6 md:pb-52">
         {allMessages.length === 0 ? (
           <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
             <Image src="/logo-neiji-full.png" alt="Neiji Logo" width={96} height={96} />
@@ -99,7 +95,8 @@ function ChatLogic({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
             return <BotMessage key={message.id} message={message} />;
           })
         )}
-        <div ref={bottomRef} />
+        {/* Bottom spacer to ensure last message is always visible above chat bar */}
+        <div ref={bottomRef} className="h-8" />
       </div>
       <EnhancedChatInput
         isAuthenticated={isAuthenticated}
