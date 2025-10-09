@@ -141,5 +141,7 @@
 - ⏳ One email = one account (add better error message, P2)
 
 **Next:** Fix OpenAI chat integration
+and many things
+
 
 
