@@ -51,7 +51,7 @@ function ChatLogic({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
     const getTimestamp = (id: string): number => {
       // Match patterns like: user-1234567890, meditation-1234567890, loading-1234567890, error-1234567890
       const timestampMatch = id.match(/-(\d{13,})/); // 13+ digits for millisecond timestamp
-      if (timestampMatch) {
+      if (timestampMatch?.[1]) {
         return Number.parseInt(timestampMatch[1], 10);
       }
       // For messages without timestamps, return 0 (they appear first)
