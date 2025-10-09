@@ -42,9 +42,31 @@ function ChatLogic({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
     }
   }, [searchParams, isAuthenticated, openDrawer]);
 
+  // Combine and sort messages by creation time
+  // Extract timestamp from IDs or use a sequential order
   const allMessages = [...messages, ...customMessages].sort((a, b) => {
-    const aTime = Number.parseInt(a.id.split("-")[1] || "0");
-    const bTime = Number.parseInt(b.id.split("-")[1] || "0");
+    // Try to extract timestamp from ID formats:
+    // - Regular nanoid: no timestamp, use 0
+    // - Timestamp-based: "prefix-{timestamp}" or "prefix-{timestamp}-suffix"
+    const getTimestamp = (id: string): number => {
+      // Match patterns like: user-1234567890, meditation-1234567890, loading-1234567890, error-1234567890
+      const timestampMatch = id.match(/-(\d{13,})/); // 13+ digits for millisecond timestamp
+      if (timestampMatch) {
+        return Number.parseInt(timestampMatch[1], 10);
+      }
+      // For messages without timestamps, return 0 (they appear first)
+      return 0;
+    };
+    
+    const aTime = getTimestamp(a.id);
+    const bTime = getTimestamp(b.id);
+    
+    // If both have no timestamp (0), maintain original order
+    if (aTime === 0 && bTime === 0) return 0;
+    // Messages with timestamps come after those without
+    if (aTime === 0) return -1;
+    if (bTime === 0) return 1;
+    // Sort by timestamp
     return aTime - bTime;
   });
 

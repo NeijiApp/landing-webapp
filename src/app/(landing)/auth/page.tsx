@@ -33,14 +33,7 @@ function AuthLogic() {
 			role: "user" | "assistant";
 			content: string;
 		}>
-	>([
-		{
-			id: "auth-welcome",
-			role: "assistant" as const,
-            content:
-                "Would you like to create an account or do you already have one? You can also connect with Google.",
-		},
-	]);
+	>([]);
 
 	// Auto-scroll (même logique que le chat)
 	useEffect(() => {
@@ -80,13 +73,27 @@ function AuthLogic() {
 
     const handledModeRef = useRef<string | null>(null);
     useEffect(() => {
-        if (!selectedMode) return;
+        if (!selectedMode) {
+            // No mode selected - ask user what they want to do
+            if (authMessages.length === 0) {
+                addMessage(
+                    "assistant",
+                    "Hi! Would you like to create a new account or sign in to an existing one?"
+                );
+            }
+            return;
+        }
+        
         if (handledModeRef.current === selectedMode) return; // avoid double-run in StrictMode
         handledModeRef.current = selectedMode;
-        setAuthStep("email");
+        
         if (selectedMode === "login") {
+            setAuthStep("email");
+            setAuthData(prev => ({ ...prev, isExistingUser: true }));
             addMessage("assistant", "Great, let's sign you in. What's your email?");
         } else if (selectedMode === "signup") {
+            setAuthStep("email");
+            setAuthData(prev => ({ ...prev, isExistingUser: false }));
             addMessage("assistant", "Let's create your account. What's your email?");
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -393,11 +400,19 @@ function AuthLogic() {
 
 		try {
             if (authStep === "welcome") {
-                addMessage(
-                    "assistant",
-                    "Tap the drawer button below to choose Sign up, Log in, or Google. Or type your email to continue.",
-                );
-                setAuthStep("email");
+                // Detect if user wants to create account or sign in
+                if (isPositive || normalizedInput.includes("create") || normalizedInput.includes("new") || normalizedInput.includes("sign up") || normalizedInput.includes("signup")) {
+                    addMessage("assistant", "Let's create your account. What's your email?");
+                    setAuthStep("signup");
+                } else if (normalizedInput.includes("sign in") || normalizedInput.includes("login") || normalizedInput.includes("existing")) {
+                    addMessage("assistant", "Great, let's sign you in. What's your email?");
+                    setAuthStep("password");
+                } else {
+                    addMessage(
+                        "assistant",
+                        "Please tell me: would you like to 'create account' or 'sign in'?"
+                    );
+                }
             } else if (authStep === "email") {
 				const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 				if (!emailRegex.test(input)) {
@@ -409,7 +424,8 @@ function AuthLogic() {
 				}
 				setAuthData((prev) => ({ ...prev, email: input }));
 
-                if (selectedMode === "login") {
+                // Check if this is login or signup based on mode or existing data
+                if (selectedMode === "login" || authData.isExistingUser) {
                     addMessage("assistant", "Thanks. What's your password?");
                     setAuthStep("password");
                 } else {
@@ -420,7 +436,7 @@ function AuthLogic() {
                     setAuthStep("signup");
                 }
 			} else if (authStep === "password") {
-				const { error } = await supabase.auth.signInWithPassword({
+				const { data, error } = await supabase.auth.signInWithPassword({
 					email: authData.email,
 					password: input,
 				});
@@ -436,17 +452,17 @@ function AuthLogic() {
                         "Welcome back! Setting up your session...",
                     );
                     
-                    // Wait for the session to be properly established
-                    setTimeout(async () => {
-                        await createUserProfile(authData.email);
-                        addMessage(
-                            "assistant",
-                            "Perfect! Login successful. Welcome to your personal space! 🎉",
-                        );
-                        setTimeout(() => {
-                            router.push("/protected/chat");
-                        }, 1000);
-                    }, 500);
+                    // Session is established, create/update profile
+                    await createUserProfile(authData.email);
+                    addMessage(
+                        "assistant",
+                        "Perfect! Login successful. Welcome to your personal space! 🎉",
+                    );
+                    
+                    // Use window.location for a full page navigation to ensure session cookies are sent
+                    setTimeout(() => {
+                        window.location.href = "/protected/chat";
+                    }, 1500);
 				}
 			} else if (authStep === "signup") {
 				if (input.length < 8) {
@@ -464,7 +480,7 @@ function AuthLogic() {
 					return;
 				}
 
-				const { error } = await supabase.auth.signUp({
+				const { data, error } = await supabase.auth.signUp({
 					email: authData.email,
 					password: input,
 				});
@@ -474,25 +490,37 @@ function AuthLogic() {
 						"assistant",
                         `Sorry, something went wrong: ${error.message}`,
 					);
-				} else {
-                    // Wait a moment for session to be established, then create profile
+				} else if (data.session) {
+                    // Auto-confirm is enabled - user gets session immediately
                     addMessage(
                         "assistant",
                         "Account created successfully! Setting up your profile...",
                     );
                     
-                    // Wait for the session to be properly established
-                    setTimeout(async () => {
-                        await createUserProfile(authData.email);
-                        addMessage(
-                            "assistant",
-                            "Your account is ready! Redirecting…",
-                        );
-                        setTimeout(() => {
-                            router.push("/protected/chat");
-                        }, 1000);
-                    }, 1000);
-				}
+                    // Session is ready, create profile and redirect
+                    await createUserProfile(authData.email);
+                    addMessage(
+                        "assistant",
+                        "Your account is ready! Welcome to Neiji 🎉",
+                    );
+                    
+                    // Use window.location for a full page navigation to ensure session cookies are sent
+                    setTimeout(() => {
+                        window.location.href = "/protected/chat";
+                    }, 1500);
+                } else if (data.user && !data.session) {
+                    // Email confirmation required (production setting)
+                    addMessage(
+                        "assistant",
+                        "Great! Please check your email to confirm your account, then sign in.",
+                    );
+				} else {
+                    // Unexpected state
+                    addMessage(
+                        "assistant",
+                        "Account created, but something unexpected happened. Please try signing in.",
+                    );
+                }
 			}
 		} catch (error) {
 			addMessage(

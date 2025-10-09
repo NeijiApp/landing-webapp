@@ -1,6 +1,7 @@
 import { createClient } from "~/utils/supabase/server";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getSiteUrl } from "~/lib/utils/site-url";
 
 /**
  * OAuth Callback Handler
@@ -13,7 +14,8 @@ import type { NextRequest } from "next/server";
 export async function GET(request: NextRequest) {
 	const requestUrl = new URL(request.url);
 	const code = requestUrl.searchParams.get("code");
-	const origin = requestUrl.origin;
+	// Use getSiteUrl() to respect environment (localhost in dev, production URL in prod)
+	const origin = getSiteUrl();
 	const next = requestUrl.searchParams.get("next") ?? "/protected/chat";
 
 	if (code) {

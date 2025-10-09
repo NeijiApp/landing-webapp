@@ -47,6 +47,7 @@ interface ChatContextValue {
 	meditationMode: "chat" | "meditation";
 	setMeditationMode: React.Dispatch<React.SetStateAction<"chat" | "meditation">>;
 	addCustomMessage: (message: ExtendedMessage) => void;
+	updateCustomMessage: (id: string, updates: Partial<ExtendedMessage>) => void;
 	clearCustomMessages: () => void;
 	isGeneratingMeditation: boolean;
 	setIsGeneratingMeditation: React.Dispatch<React.SetStateAction<boolean>>;
@@ -163,9 +164,12 @@ export function ChatStateProvider({
       e.preventDefault();
       const trimmed = input.trim();
       if (!trimmed) return;
+      
       // Append user message locally
       const userMessage: Message = { id: nanoid(), role: "user", content: trimmed } as any;
-      setMessages((prev) => [...prev, userMessage]);
+      const updatedMessages = [...messages, userMessage];
+      setMessages(updatedMessages);
+      
       // Persist per-message if authenticated
       if (isAuthenticated && userId) {
         const uid = Number.parseInt(userId, 10);
@@ -175,8 +179,99 @@ export function ChatStateProvider({
             .catch((err) => console.warn("🎯 [PROVIDER] Persist user message failed", err));
         }
       }
+      
       setInput("");
-      setStatus("idle");
+      setStatus("streaming");
+      
+      try {
+        // Call the chat API to get AI response
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            messages: updatedMessages.map(m => ({ 
+              role: m.role, 
+              content: m.content 
+            })) 
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        
+        // Handle streaming response - parse AI SDK data stream format
+        let assistantContent = "";
+        const assistantId = nanoid();
+        
+        if (response.body) {
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              
+              const chunk = decoder.decode(value, { stream: true });
+              const lines = chunk.split('\n').filter(line => line.trim());
+              
+              for (const line of lines) {
+                // AI SDK streams data in format: "0:\"text content\""
+                if (line.startsWith('0:')) {
+                  try {
+                    // Extract JSON string after "0:"
+                    const jsonStr = line.slice(2);
+                    const parsed = JSON.parse(jsonStr);
+                    assistantContent += parsed;
+                    
+                    // Update assistant message in real-time
+                    setMessages((prev) => {
+                      const withoutLastAssistant = prev.filter(m => m.id !== assistantId);
+                      return [
+                        ...withoutLastAssistant,
+                        { id: assistantId, role: "assistant", content: assistantContent } as Message
+                      ];
+                    });
+                  } catch (e) {
+                    // Skip malformed chunks
+                    console.warn("🎯 [PROVIDER] Failed to parse chunk:", e);
+                  }
+                }
+              }
+            }
+          } finally {
+            reader.releaseLock();
+          }
+          
+          // Persist assistant message if authenticated
+          if (isAuthenticated && userId && assistantContent) {
+            const uid = Number.parseInt(userId, 10);
+            if (!Number.isNaN(uid)) {
+              conversationHistory
+                .saveMessage(uid, { 
+                  id: assistantId, 
+                  role: "assistant", 
+                  content: assistantContent 
+                })
+                .catch((err) => console.warn("🎯 [PROVIDER] Persist assistant message failed", err));
+            }
+          }
+        }
+        
+        setStatus("idle");
+      } catch (error) {
+        console.error("🎯 [PROVIDER] Chat API error:", error);
+        setStatus("error");
+        
+        // Add error message
+        const errorMessage: Message = {
+          id: nanoid(),
+          role: "assistant",
+          content: "Sorry, I encountered an error. Please try again."
+        } as any;
+        setMessages((prev) => [...prev, errorMessage]);
+      }
     },
     stop: () => {
       // no-op until streaming is implemented
@@ -208,6 +303,35 @@ export function ChatStateProvider({
       }
     }
 	};
+
+	const updateCustomMessage = (id: string, updates: Partial<ExtendedMessage>) => {
+		setCustomMessages((prev) => 
+			prev.map((msg) => 
+				msg.id === id ? { ...msg, ...updates } : msg
+			)
+		);
+
+		// Update in database if authenticated
+		if (isAuthenticated && userId) {
+			const uid = Number.parseInt(userId, 10);
+			if (!Number.isNaN(uid)) {
+				setCustomMessages((prev) => {
+					const updatedMessage = prev.find((msg) => msg.id === id);
+					if (updatedMessage && (updatedMessage.role === "user" || updatedMessage.role === "assistant")) {
+						conversationHistory
+							.saveMessage(uid, {
+								id: updatedMessage.id,
+								role: updatedMessage.role,
+								content: updatedMessage.content,
+								audioUrl: updatedMessage.audioUrl,
+							})
+							.catch((err) => console.warn("Error updating custom message:", err));
+					}
+					return prev;
+				});
+			}
+		}
+	};
 	
 	const clearCustomMessages = () => {
 		setCustomMessages([]);
@@ -223,6 +347,7 @@ export function ChatStateProvider({
 		meditationMode,
 		setMeditationMode,
 		addCustomMessage,
+		updateCustomMessage,
 		clearCustomMessages,
 		isGeneratingMeditation,
 		setIsGeneratingMeditation,

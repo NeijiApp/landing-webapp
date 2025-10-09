@@ -21,12 +21,14 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
     meditationMode,
     setMeditationMode,
     addCustomMessage,
+    updateCustomMessage,
     isGeneratingMeditation,
     setIsGeneratingMeditation,
   } = useChatState();
 
   const [parsedOverrides, setParsedOverrides] = useState<ParsedOverrides | null>(null);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const isLoading = useMemo(
     () => status === "streaming" || status === "submitted" || isGeneratingMeditation,
@@ -104,6 +106,22 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
     return `Create a ${params.duration}-minute ${params.goal} meditation. ${goalInstructions[params.goal]} ${guidanceInstructions[params.guidance]} Use a ${params.gender} voice.`;
   };
 
+  const handleCancelMeditation = (loadingId: string) => {
+    // Abort the fetch request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    
+    // Update the loading message to show cancellation
+    updateCustomMessage(loadingId, {
+      content: "Meditation generation cancelled.",
+      isGeneratingMeditation: false
+    });
+    
+    setIsGeneratingMeditation(false);
+  };
+
   const handleMeditationGenerate = async (params: MeditationParams) => {
     setIsGeneratingMeditation(true);
     const prompt = generatePrompt(params);
@@ -113,12 +131,19 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
       content: `Generate: ${params.duration}m, ${params.goal}, ${params.guidance}, ${params.gender}, ${params.background} bg`, 
       role: "user" 
     });
+    
+    // Create loading message with animation and cancel callback
     const loadingId = `loading-${Date.now()}`;
     addCustomMessage({ 
       id: loadingId, 
-      content: "🧘‍♀️ Generating your personalized meditation...", 
-      role: "assistant" 
+      content: "Crafting your personalized meditation...", 
+      role: "assistant",
+      isGeneratingMeditation: true,
+      onCancelGeneration: () => handleCancelMeditation(loadingId)
     });
+    
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
     
     try {
       const response = await fetch("/api/meditation", {
@@ -133,6 +158,7 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
           guidance: params.guidance, 
           goal: params.goal 
         }),
+        signal: abortControllerRef.current.signal
       });
       
       if (!response.ok) throw new Error(await response.text());
@@ -140,21 +166,32 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
       const audioBlob = await response.blob();
       if (audioBlob.size === 0) throw new Error("Received empty audio file");
       const audioUrl = URL.createObjectURL(audioBlob);
-      addCustomMessage({ 
-        id: `meditation-${Date.now()}`, 
-        content: `Here is your personalized meditation.`, 
-        role: "assistant", 
-        audioUrl 
+      
+      // Transform loading message into final message with audio
+      updateCustomMessage(loadingId, {
+        content: "Here is your personalized meditation.",
+        audioUrl,
+        isGeneratingMeditation: false,
+        onCancelGeneration: undefined
       });
-    } catch (error) {
+    } catch (error: any) {
+      // Check if it was cancelled
+      if (error.name === 'AbortError') {
+        console.log("Meditation generation cancelled by user");
+        return; // Don't update message, handleCancelMeditation already did
+      }
+      
       console.error("Error generating meditation:", error);
-      addCustomMessage({ 
-        id: `error-${Date.now()}`, 
-        content: "Sorry, I couldn't generate your meditation. Please try again.", 
-        role: "assistant" 
+      
+      // Transform loading message into error message
+      updateCustomMessage(loadingId, {
+        content: "Sorry, I couldn't generate your meditation. Please try again.",
+        isGeneratingMeditation: false,
+        onCancelGeneration: undefined
       });
     } finally {
       setIsGeneratingMeditation(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -171,12 +208,18 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
       role: "user" 
     });
     
+    // Create loading message with animation and cancel callback
     const loadingId = `loading-${Date.now()}`;
     addCustomMessage({ 
       id: loadingId, 
-      content: "🧘‍♀️ Generating your personalized meditation from prompt...", 
-      role: "assistant" 
+      content: "Crafting your personalized meditation...", 
+      role: "assistant",
+      isGeneratingMeditation: true,
+      onCancelGeneration: () => handleCancelMeditation(loadingId)
     });
+    
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
     
     try {
       const defaultVoiceId = getVoiceId("female");
@@ -192,6 +235,7 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
           guidance: "confirmed", 
           goal: "calm" 
         }),
+        signal: abortControllerRef.current.signal
       });
       
       if (!response.ok) throw new Error(await response.text());
@@ -222,21 +266,32 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
       const audioBlob = await response.blob();
       if (audioBlob.size === 0) throw new Error("Received empty audio file");
       const audioUrl = URL.createObjectURL(audioBlob);
-      addCustomMessage({ 
-        id: `meditation-${Date.now()}`, 
-        content: `Here's your meditation based on your prompt.`, 
-        role: "assistant", 
-        audioUrl 
+      
+      // Transform loading message into final message with audio
+      updateCustomMessage(loadingId, {
+        content: "Here's your meditation based on your prompt.",
+        audioUrl,
+        isGeneratingMeditation: false,
+        onCancelGeneration: undefined
       });
-    } catch (error) {
+    } catch (error: any) {
+      // Check if it was cancelled
+      if (error.name === 'AbortError') {
+        console.log("Meditation generation cancelled by user");
+        return; // Don't update message, handleCancelMeditation already did
+      }
+      
       console.error("Error generating meditation from prompt:", error);
-      addCustomMessage({ 
-        id: `error-${Date.now()}`, 
-        content: "Sorry, I couldn't generate from your prompt.", 
-        role: "assistant" 
+      
+      // Transform loading message into error message
+      updateCustomMessage(loadingId, {
+        content: "Sorry, I couldn't generate from your prompt.",
+        isGeneratingMeditation: false,
+        onCancelGeneration: undefined
       });
     } finally {
       setIsGeneratingMeditation(false);
+      abortControllerRef.current = null;
     }
   };
 
