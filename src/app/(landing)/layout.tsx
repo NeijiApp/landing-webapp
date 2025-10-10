@@ -49,7 +49,7 @@ function Header() {
 							height={403}
 							className="h-8 w-auto transition-transform group-hover:rotate-6 sm:h-12"
 						/>
-						<span className="bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text font-bold text-xl text-transparent sm:text-2xl md:text-3xl">
+						<span className="font-logo bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text font-bold text-xl text-transparent sm:text-2xl md:text-3xl">
 							Neiji
 						</span>
 					</a>

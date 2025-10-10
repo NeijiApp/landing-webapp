@@ -3,9 +3,62 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Open Sans - Main Font */
+@font-face {
+	font-family: 'Open Sans';
+	src: url('/fonts/OpenSans-VariableFont.ttf') format('truetype');
+	font-weight: 300 800;
+	font-stretch: 75% 100%;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Open Sans';
+	src: url('/fonts/OpenSans-Italic-VariableFont.ttf') format('truetype');
+	font-weight: 300 800;
+	font-stretch: 75% 100%;
+	font-style: italic;
+	font-display: swap;
+}
+
+/* TT Drugs - For Logos and Special Titles */
+@font-face {
+	font-family: 'TT Drugs';
+	src: url('/fonts/TT Drugs Trial Regular.otf') format('opentype');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'TT Drugs';
+	src: url('/fonts/TT Drugs Trial Bold.otf') format('opentype');
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'TT Drugs';
+	src: url('/fonts/TT Drugs Trial Light.otf') format('opentype');
+	font-weight: 300;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'TT Drugs';
+	src: url('/fonts/TT Drugs Trial Black.otf') format('opentype');
+	font-weight: 900;
+	font-style: normal;
+	font-display: swap;
+}
+
 @theme {
-	--font-sans: var(--font-roboto-sans), ui-sans-serif, system-ui, sans-serif,
+	--font-sans: 'Open Sans', ui-sans-serif, system-ui, sans-serif,
 		"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+	--font-tt-drugs: 'TT Drugs', ui-sans-serif, system-ui, sans-serif;
 }
 
 @theme inline {
@@ -121,5 +174,11 @@
 	}
 	body {
 		@apply bg-background text-foreground;
+	}
+}
+
+@layer utilities {
+	.font-logo {
+		font-family: var(--font-tt-drugs);
 	}
 }

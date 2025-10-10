@@ -54,6 +54,8 @@ export function EnhancedDrawer({ isOpen, onClose, isAuthenticated = false }: Enh
 
   const continueWithGoogle = async () => {
     const redirectUrl = getOAuthRedirectUrl("/protected/chat");
+    console.log("🔍 OAuth Redirect URL:", redirectUrl);
+    console.log("🔍 Current origin:", typeof window !== "undefined" ? window.location.origin : "server-side");
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
