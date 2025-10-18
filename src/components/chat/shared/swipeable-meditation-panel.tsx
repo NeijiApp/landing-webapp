@@ -56,15 +56,18 @@ export function SwipeableMeditationPanel({
   // Optimized touch event handlers with performance improvements
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     setIsDragging(true);
-    const touchY = e.touches[0].clientY;
-    setDragStartY(touchY);
-    setCurrentY(touchY);
+    const touchY = e.touches[0]?.clientY;
+    if (touchY !== undefined) {
+      setDragStartY(touchY);
+      setCurrentY(touchY);
+    }
   }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (!isDragging) return;
     
-    const touchY = e.touches[0].clientY;
+    const touchY = e.touches[0]?.clientY;
+    if (touchY === undefined) return;
     // Use requestAnimationFrame for smoother updates
     requestAnimationFrame(() => {
       setCurrentY(touchY);

@@ -15,12 +15,15 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import { BackgroundNoiseDrawer } from "./background-noise-drawer";
-import { 
+import type { 
   BackgroundNoiseState, 
-  DEFAULT_BACKGROUND_NOISE_STATE,
   BackgroundNoiseConfig 
 } from "~/lib/audio/background-noise";
-import { SimpleAudioMixer, AudioMixerState } from "~/lib/audio/simple-audio-mixer";
+import { 
+  DEFAULT_BACKGROUND_NOISE_STATE
+} from "~/lib/audio/background-noise";
+import { SimpleAudioMixer } from "~/lib/audio/simple-audio-mixer";
+import type { AudioMixerState } from "~/lib/audio/simple-audio-mixer";
 
 interface EnhancedAudioPlayerWithNoiseProps {
 	audioUrl: string;

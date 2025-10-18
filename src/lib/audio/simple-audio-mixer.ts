@@ -3,7 +3,7 @@
  * Uses simple HTML5 Audio elements with volume control instead of Web Audio API
  */
 
-import { BackgroundNoiseConfig, BackgroundNoiseState } from './background-noise';
+import type { BackgroundNoiseConfig, BackgroundNoiseState } from './background-noise';
 
 export interface AudioMixerState {
   isPlaying: boolean;

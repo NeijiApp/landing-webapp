@@ -3,7 +3,7 @@
  * Uses Web Audio API for real-time audio mixing and volume control
  */
 
-import { BackgroundNoiseConfig, BackgroundNoiseState } from './background-noise';
+import type { BackgroundNoiseConfig, BackgroundNoiseState } from './background-noise';
 
 export interface AudioMixerState {
   isPlaying: boolean;

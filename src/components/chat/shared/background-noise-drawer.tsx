@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
-import { 
+import type { 
   BackgroundNoiseConfig, 
-  BackgroundNoiseState, 
+  BackgroundNoiseState 
+} from "~/lib/audio/background-noise";
+import { 
   DEFAULT_BACKGROUND_NOISE_STATE,
   BACKGROUND_NOISE_CONFIGS 
 } from "~/lib/audio/background-noise";
