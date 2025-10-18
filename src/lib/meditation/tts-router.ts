@@ -23,7 +23,7 @@ function toElevenLabsOptions(options: TTSGenerateOptions): {
 	voice_gender?: "male" | "female";
 } {
 	return {
-		voice_id: options.voice_id || "pjcYQlDFKMbcOUp6F5GD", // Default female voice
+		voice_id: options.voice_id || "rAmra0SCIYOxYmRNDSm3", // Default female voice
 		voice_style: options.voice_style,
 		voice_gender: options.voice_gender,
 	};

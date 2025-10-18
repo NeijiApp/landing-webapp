@@ -2,12 +2,13 @@
 
 import { Ban, Brain, SendHorizonal, Sparkles, User } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
 import { AskRegistrationDrawerContent, CustomDrawer } from "./custom-drawer";
 import { MeditationPanel, type MeditationParams, type ParsedOverrides } from "./meditation-panel";
+import { SwipeableMeditationPanel } from "./swipeable-meditation-panel";
 import { useChatState, useDrawer } from "./unified-provider";
 
 interface ChatInputProps {
@@ -27,6 +28,7 @@ export function ChatInput({ onChatFocus, isAuthenticated = false }: ChatInputPro
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [parsedOverrides, setParsedOverrides] = useState<ParsedOverrides | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   const isLoading = useMemo(
     () => status === "streaming" || status === "submitted" || isGeneratingMeditation,
@@ -35,8 +37,19 @@ export function ChatInput({ onChatFocus, isAuthenticated = false }: ChatInputPro
 
   const { isOpen, openDrawer, closeDrawer } = useDrawer();
 
+  // Detect mobile device
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+
   const getVoiceId = (gender: "male" | "female"): string => {
-    return gender === "female" ? "g6xIsTj2HwM6VR4iXFCw" : "GUDYcgRAONiI1nXDcNQQ";
+    return gender === "female" ? "rAmra0SCIYOxYmRNDSm3" : "GUDYcgRAONiI1nXDcNQQ";
   };
 
   const generatePrompt = (params: MeditationParams): string => {
@@ -200,33 +213,54 @@ export function ChatInput({ onChatFocus, isAuthenticated = false }: ChatInputPro
         </CustomDrawer>
       </div>
 
-      {/* Meditation drawer overlay */}
-      <div
-        className={cn(
-          "fixed right-1/2 bottom-[92px] z-5 w-full max-w-xl translate-x-1/2 transition-all duration-300 ease-in-out",
-          meditationMode === "meditation"
-            ? isExpanded
-              ? "h-[min(70dvh,calc(100dvh-140px))]"
-              : "h-[min(45dvh,calc(100dvh-140px))]"
-            : "h-0",
-        )}
-      >
-        <div className="h-full overflow-hidden">
-          <div className="h-full overflow-y-auto px-4 py-4">
-            <MeditationPanel
-              onGenerate={handleMeditationGenerate}
-              isGenerating={isGeneratingMeditation}
-              isExpanded={isExpanded}
-              toggleExpand={() => setIsExpanded(!isExpanded)}
-              parsedOverrides={parsedOverrides}
-            />
+      {/* Meditation drawer overlay - conditional rendering for mobile vs desktop */}
+      {isMobile ? (
+        <SwipeableMeditationPanel
+          isOpen={meditationMode === "meditation"}
+          onClose={() => setMeditationMode("chat")}
+          onGenerate={handleMeditationGenerate}
+          isGenerating={isGeneratingMeditation}
+          parsedOverrides={parsedOverrides}
+        />
+      ) : (
+        <div
+          className={cn(
+            "fixed right-1/2 bottom-[92px] z-5 w-full max-w-xl translate-x-1/2 transition-all duration-300 ease-in-out",
+            meditationMode === "meditation"
+              ? isExpanded
+                ? "h-[min(70dvh,calc(100dvh-140px))]"
+                : "h-[min(45dvh,calc(100dvh-140px))]"
+              : "h-0",
+          )}
+        >
+          <div className="h-full overflow-hidden">
+            <div className="h-full overflow-y-auto px-4 py-4">
+              <MeditationPanel
+                onGenerate={handleMeditationGenerate}
+                isGenerating={isGeneratingMeditation}
+                isExpanded={isExpanded}
+                toggleExpand={() => setIsExpanded(!isExpanded)}
+                parsedOverrides={parsedOverrides}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Input bar */}
       <div className="fixed right-1/2 bottom-0 z-10 w-full max-w-xl translate-x-1/2 self-center">
-        <div className="rounded-t-2xl bg-white/85 p-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-lg backdrop-blur-md md:p-4">
+        {/* Hidden white background area - extends below the chat bar */}
+        {isMobile && (
+          <div 
+            className="absolute inset-x-0 bg-white"
+            style={{
+              height: "150px", // Extra white area below the chat bar
+              bottom: "-150px", // Position it below the chat bar
+            }}
+          />
+        )}
+        
+        <div className="rounded-t-2xl bg-white/85 p-3 pb-[calc(12px+env(safe-area-inset-bottom))] shadow-lg backdrop-blur-md md:p-4 relative">
           <div className="flex items-center gap-3">
             {/* User button - only show for non-authenticated users */}
             {!isAuthenticated && (

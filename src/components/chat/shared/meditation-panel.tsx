@@ -54,7 +54,7 @@ const GENDER_OPTIONS = [
 	{
 		value: "female" as const,
 		label: "Female",
-		voiceId: "g6xIsTj2HwM6VR4iXFCw",
+		voiceId: "rAmra0SCIYOxYmRNDSm3",
 	},
 	{ value: "male" as const, label: "Male", voiceId: "GUDYcgRAONiI1nXDcNQQ" },
 ];
@@ -170,8 +170,8 @@ export function MeditationPanel({
 				body: JSON.stringify({
 					voiceId:
 						params.gender === "male"
-							? "GUDYcgRAONiI1nXDcNQQ"
-							: "g6xIsTj2HwM6VR4iXFCw",
+										? "GUDYcgRAONiI1nXDcNQQ"
+										: "rAmra0SCIYOxYmRNDSm3",
 					gender: params.gender,
 				}),
 			});

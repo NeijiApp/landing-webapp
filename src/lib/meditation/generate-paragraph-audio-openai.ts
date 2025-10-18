@@ -19,7 +19,7 @@ type GenerateAudioProps = {
 
 // Map ElevenLabs voices to OpenAI voices
 const VOICE_MAPPING = {
-	pjcYQlDFKMbcOUp6F5GD: "nova", // Female voice
+	rAmra0SCIYOxYmRNDSm3: "nova", // Female voice
 	pNInz6obpgDQGcFmaJgB: "onyx", // Male voice
 	female: "nova",
 	male: "onyx",

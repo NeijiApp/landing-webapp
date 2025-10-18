@@ -9,7 +9,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-const voice_id = 'g6xIsTj2HwM6VR4iXFCw'; // Female voice
+const voice_id = 'rAmra0SCIYOxYmRNDSm3'; // Female voice
 
 if (!ELEVENLABS_API_KEY) {
     console.error('❌ ELEVENLABS_API_KEY not found in environment');

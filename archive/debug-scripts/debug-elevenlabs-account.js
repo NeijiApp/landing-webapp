@@ -71,7 +71,7 @@ async function testOriginalLongText() {
     console.log(`📏 Testing with ${originalLongText.length} characters...`);
     
     try {
-        const voice_id = 'g6xIsTj2HwM6VR4iXFCw';
+        const voice_id = 'rAmra0SCIYOxYmRNDSm3';
         const url = `https://api.elevenlabs.io/v1/text-to-speech/${voice_id}/stream?output_format=mp3_44100_128`;
         
         const response = await fetch(url, {

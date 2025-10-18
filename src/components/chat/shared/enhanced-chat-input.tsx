@@ -7,6 +7,7 @@ import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
 import { EnhancedDrawer } from "./enhanced-drawer";
 import { MeditationDrawer } from "./meditation-drawer";
+import { SwipeableMeditationPanel } from "./swipeable-meditation-panel";
 import { type MeditationParams, type ParsedOverrides } from "./meditation-panel";
 import { useChatState, useDrawer } from "./unified-provider";
 
@@ -28,6 +29,7 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
 
   const [parsedOverrides, setParsedOverrides] = useState<ParsedOverrides | null>(null);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const isLoading = useMemo(
@@ -73,6 +75,17 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
     }
   };
 
+  // Detect mobile device
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+
   // Detect mobile keyboard
   useEffect(() => {
     if (typeof window !== 'undefined' && window.visualViewport) {
@@ -88,7 +101,7 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
   }, [isMeditationDrawerOpen]);
 
   const getVoiceId = (gender: "male" | "female"): string => {
-    return gender === "female" ? "g6xIsTj2HwM6VR4iXFCw" : "GUDYcgRAONiI1nXDcNQQ";
+    return gender === "female" ? "rAmra0SCIYOxYmRNDSm3" : "GUDYcgRAONiI1nXDcNQQ";
   };
 
   const generatePrompt = (params: MeditationParams): string => {
@@ -306,37 +319,71 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
         isAuthenticated={isAuthenticated} 
       />
 
-      {/* Meditation Drawer - matches auth drawer design */}
-      <MeditationDrawer
-        isOpen={isMeditationDrawerOpen}
-        onClose={() => setMeditationMode("chat")}
-        onGenerate={handleMeditationGenerate}
-        isGenerating={isGeneratingMeditation}
-        parsedOverrides={parsedOverrides}
-        keyboardOpen={keyboardOpen}
-      />
+      {/* Meditation Drawer - conditional rendering for mobile vs desktop */}
+      {isMobile ? (
+        <SwipeableMeditationPanel
+          isOpen={isMeditationDrawerOpen}
+          onClose={() => setMeditationMode("chat")}
+          onGenerate={handleMeditationGenerate}
+          isGenerating={isGeneratingMeditation}
+          parsedOverrides={parsedOverrides}
+        />
+      ) : (
+        <MeditationDrawer
+          isOpen={isMeditationDrawerOpen}
+          onClose={() => setMeditationMode("chat")}
+          onGenerate={handleMeditationGenerate}
+          isGenerating={isGeneratingMeditation}
+          parsedOverrides={parsedOverrides}
+          keyboardOpen={keyboardOpen}
+        />
+      )}
 
       {/* Enhanced Input Bar - Always visible on top, seamlessly connected to meditation drawer */}
       <div className={cn(
-        "fixed right-1/2 bottom-0 z-50 w-full max-w-xl translate-x-1/2 transition-all duration-500 ease-out"
-      )}>
+        "fixed right-1/2 bottom-0 z-50 w-full max-w-xl translate-x-1/2",
+        // Optimized transitions with hardware acceleration
+        "transition-all duration-300 ease-out"
+      )}
+      style={{
+        willChange: "transform",
+      }}>
+        {/* Hidden white background area - extends below the chat bar */}
+        {isMobile && (
+          <div 
+            className="absolute inset-x-0 bg-white"
+            style={{
+              height: "150px", // Extra white area below the chat bar
+              bottom: "-150px", // Position it below the chat bar
+            }}
+          />
+        )}
+        
         <div className={cn(
-          "bg-white/95 backdrop-blur-md transition-all duration-500 ease-out",
+          "bg-white/95 backdrop-blur-md relative",
           "border-l border-r border-orange-100/50", // Sides only, no top/bottom border
           shouldHideChatBar 
             ? "p-0 pb-0 rounded-t-3xl border-t shadow-2xl" 
             : "p-3 pb-[calc(12px+env(safe-area-inset-bottom))] md:p-4 rounded-t-3xl border-t shadow-2xl",
           // When meditation drawer is open, remove top rounding and border to merge
-          isMeditationDrawerOpen && !shouldHideChatBar && "rounded-t-none border-t-0 shadow-none"
-        )}>
+          isMeditationDrawerOpen && !shouldHideChatBar && "rounded-t-none border-t-0 shadow-none",
+          // Optimized transitions
+          "transition-all duration-300 ease-out"
+        )}
+        style={{
+          willChange: "transform, opacity",
+        }}>
           
           {/* Chat Bar Content - Only hide for auth drawer */}
           <div className={cn(
-            "transition-all ease-out",
+            "transition-all ease-out duration-300",
             shouldHideChatBar 
-              ? "opacity-0 scale-95 pointer-events-none transform -translate-y-2 duration-200" 
-              : "opacity-100 scale-100 pointer-events-auto transform translate-y-0 duration-400 delay-100"
-          )}>
+              ? "opacity-0 scale-95 pointer-events-none transform -translate-y-2" 
+              : "opacity-100 scale-100 pointer-events-auto transform translate-y-0 delay-100"
+          )}
+          style={{
+            willChange: shouldHideChatBar ? "transform, opacity" : "auto",
+          }}>
             <div className="flex items-center gap-3">
               {/* User Profile Button */}
               {!isAuthenticated && (
@@ -345,16 +392,19 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
                   size="icon"
                   variant="orange"
                   className={cn(
-                    "size-11 rounded-full transition-all ease-out",
+                    "size-11 rounded-full transition-all ease-out duration-300",
                     shouldHideChatBar 
-                      ? "scale-0 opacity-0 rotate-180 duration-200" 
-                      : "scale-100 opacity-100 rotate-0 duration-400 delay-150 hover:scale-105 active:scale-95"
+                      ? "scale-0 opacity-0 rotate-180" 
+                      : "scale-100 opacity-100 rotate-0 delay-150 hover:scale-105 active:scale-95"
                   )}
+                  style={{
+                    willChange: shouldHideChatBar ? "transform, opacity" : "transform",
+                  }}
                   onClick={handleOpenAuthDrawer}
                 >
                   <User className={cn(
-                    "transition-all ease-out",
-                    shouldHideChatBar ? "size-0 duration-200" : "size-6 duration-300 delay-150"
+                    "transition-all ease-out duration-300",
+                    shouldHideChatBar ? "size-0" : "size-6 delay-150"
                   )} />
                 </Button>
               )}
@@ -366,16 +416,19 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
                   size="icon"
                   variant={meditationMode === "meditation" ? "orange" : "orangeOutline"}
                   className={cn(
-                    "size-12 rounded-full transition-all ease-out",
+                    "size-12 rounded-full transition-all ease-out duration-300",
                     shouldHideChatBar 
-                      ? "scale-0 opacity-0 rotate-180 pointer-events-none duration-200" 
-                      : "scale-100 opacity-100 rotate-0 duration-300 hover:scale-105 active:scale-95"
+                      ? "scale-0 opacity-0 rotate-180 pointer-events-none" 
+                      : "scale-100 opacity-100 rotate-0 hover:scale-105 active:scale-95"
                   )}
+                  style={{
+                    willChange: shouldHideChatBar ? "transform, opacity" : "transform",
+                  }}
                 >
                   <Brain
                     className={cn(
-                      "transition-all ease-out",
-                      shouldHideChatBar ? "size-0 duration-200" : meditationMode === "meditation" ? "size-7 duration-300" : "size-6 duration-300",
+                      "transition-all ease-out duration-300",
+                      shouldHideChatBar ? "size-0" : meditationMode === "meditation" ? "size-7" : "size-6",
                     )}
                   />
                 </Button>
@@ -432,11 +485,14 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
                       size="icon" 
                       variant="orange" 
                       className={cn(
-                        "size-9 rounded-full transition-all ease-out",
+                        "size-9 rounded-full transition-all ease-out duration-300",
                         shouldHideChatBar 
-                          ? "scale-0 opacity-0 rotate-180 pointer-events-none duration-200" 
-                          : "scale-100 opacity-100 rotate-0 duration-300 hover:scale-105 active:scale-95"
+                          ? "scale-0 opacity-0 rotate-180 pointer-events-none" 
+                          : "scale-100 opacity-100 rotate-0 hover:scale-105 active:scale-95"
                       )}
+                      style={{
+                        willChange: shouldHideChatBar ? "transform, opacity" : "transform",
+                      }}
                       disabled={!((input ?? "").trim()) || shouldHideChatBar}
                     >
                       {meditationMode === "meditation" ? (

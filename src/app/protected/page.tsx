@@ -127,11 +127,8 @@ export default function ProtectedPage() {
 		<div className="min-h-screen p-8">
 			<div className="mx-auto max-w-4xl">
 				{" "}
-				<div className="mb-8 flex items-center justify-between">
+				<div className="mb-8">
 					<h1 className="font-bold text-3xl">Tableau de bord Neiji</h1>
-					<Button onClick={handleLogout} variant="outline">
-						Sign out
-					</Button>
 				</div>
 				<div className="grid gap-6">
 					<div className="rounded-lg border p-6">

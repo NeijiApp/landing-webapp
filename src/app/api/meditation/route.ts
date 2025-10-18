@@ -10,7 +10,7 @@ import { meditationArchitect } from "~/lib/meditation/meditation-architect";
 const meditationSchema = z.object({
   duration: z.number().min(0.5).max(30).optional().default(5),
   prompt: z.string().min(1).max(500),
-  voiceId: z.string().optional().default("g6xIsTj2HwM6VR4iXFCw"),
+  voiceId: z.string().optional().default("rAmra0SCIYOxYmRNDSm3"),
   background: z
     .enum(["silence", "waves", "rain", "focus", "relax"])
     .optional()
@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
     // Use the correct voice ID based on parsed gender
     const finalVoiceId = finalParams.voiceGender === "male"
       ? "GUDYcgRAONiI1nXDcNQQ"  // Male voice ID
-      : "g6xIsTj2HwM6VR4iXFCw"; // Female voice ID
+      : "rAmra0SCIYOxYmRNDSm3"; // Female voice ID
 
     // Generate final meditation audio
     console.log(`🎤 Generating audio with voice: ${finalVoiceId} (${finalParams.voiceGender}) - ${finalParams.voiceStyle} style`);

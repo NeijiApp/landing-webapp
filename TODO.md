@@ -28,6 +28,36 @@
   - Create breathing circle or progress indicator
   - File: `src/components/chat/shared/meditation-loading.tsx`
 
+- [ ] Mobile: Swipe gesture for meditation panel drawer
+  - Add swipe up/down gestures to open/expand/retract meditation panel drawer
+  - States: compact → expanded (from chat view)
+  - Improve mobile UX with native-feeling drawer interactions
+
+- [ ] Add background noises
+  - See how we can make them last as far as 20 minutes
+  - Research ambient sound loops and layering techniques
+
+- [x] Change female voice to fit naturally
+  - Improve voice naturalness and flow
+  - Test different voice models and settings
+
+- [ ] Enhance meditation guidance text generation
+  - Improve precision based on context
+  - Refine prompts and structure for better quality
+
+- [ ] Add Stripe payment integration
+  - Think about business model
+  - Implement payment flow and subscription system
+
+- [ ] Enhance system prompt
+  - Improve AI guidance quality
+  - Review and refine prompts in `src/app/api/chat/prompts.ts`
+
+- [ ] Product strategy, UI/UX research, and website wording
+  - Define features and user journey
+  - Research optimal UX patterns
+  - Refine website copy and messaging
+
 ### 🔒 Security
 - [ ] Security audit before launch
   - [ ] Check RLS policies in Supabase
@@ -53,7 +83,7 @@
   - Docs: https://supabase.com/docs/guides/platform/custom-domains
 
 ### 📧 Email & Authentication Features
-- [ ] **Setup email confirmation for production**
+- [ <>] **Setup email confirmation for production**
   - Enable confirmations in `supabase/config.toml` (line 157)
   - Configure SMTP provider (SendGrid, Resend, or AWS SES)
   - Test confirmation email flow

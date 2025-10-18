@@ -94,7 +94,7 @@ async function runComprehensiveTests() {
         // Test 1: Original configuration (streaming)
         {
             name: "Original Streaming",
-            voice_id: 'g6xIsTj2HwM6VR4iXFCw',
+            voice_id: 'rAmra0SCIYOxYmRNDSm3',
             model_id: "eleven_multilingual_v2",
             endpoint_type: 'streaming',
             voice_settings: {
@@ -108,7 +108,7 @@ async function runComprehensiveTests() {
         // Test 2: Non-streaming endpoint
         {
             name: "Original Non-Streaming",
-            voice_id: 'g6xIsTj2HwM6VR4iXFCw',
+            voice_id: 'rAmra0SCIYOxYmRNDSm3',
             model_id: "eleven_multilingual_v2",
             endpoint_type: 'non-streaming',
             voice_settings: {
@@ -122,7 +122,7 @@ async function runComprehensiveTests() {
         // Test 3: Different model (Turbo v2)
         {
             name: "Turbo V2 Streaming",
-            voice_id: 'g6xIsTj2HwM6VR4iXFCw',
+            voice_id: 'rAmra0SCIYOxYmRNDSm3',
             model_id: "eleven_turbo_v2",
             endpoint_type: 'streaming',
             voice_settings: {
@@ -136,7 +136,7 @@ async function runComprehensiveTests() {
         // Test 4: Minimal voice settings
         {
             name: "Minimal Settings",
-            voice_id: 'g6xIsTj2HwM6VR4iXFCw',
+            voice_id: 'rAmra0SCIYOxYmRNDSm3',
             model_id: "eleven_multilingual_v2",
             endpoint_type: 'streaming',
             voice_settings: {

@@ -398,7 +398,7 @@ export class MeditationAIAgent {
 
 	private getVoiceId(gender: "male" | "female"): string {
 		return gender === "female"
-			? "pjcYQlDFKMbcOUp6F5GD"
+			? "rAmra0SCIYOxYmRNDSm3"
 			: "GUDYcgRAONiI1nXDcNQQ";
 	}
 

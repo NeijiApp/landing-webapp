@@ -5,7 +5,7 @@ import type { ExtraProps } from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { cn } from "~/lib/utils";
-import { EnhancedAudioPlayer } from "~/components/chat/shared/enhanced-audio-player";
+import { EnhancedAudioPlayerWithNoise } from "~/components/chat/shared/enhanced-audio-player-with-noise";
 import { MeditationLoadingAnimation } from "./meditation-loading";
 
 // Extended message type that works for both authenticated and public chat
@@ -173,7 +173,7 @@ export function BotMessage({ message }: BotMessageProps) {
 							: "opacity-0 -translate-y-4 scale-95"
 					)}
 				>
-					<EnhancedAudioPlayer
+					<EnhancedAudioPlayerWithNoise
 						audioUrl={message.audioUrl}
 						title="Your Meditation"
 					/>
