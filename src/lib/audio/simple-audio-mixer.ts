@@ -84,16 +84,36 @@ export class SimpleAudioMixer {
       this.backgroundAudio = null;
     }
 
-    this.backgroundAudio = new Audio(config.file);
-    this.backgroundAudio.loop = true;
-    this.backgroundAudio.preload = 'auto';
-    this.backgroundAudio.volume = 0; // Start muted, will be set by volume control
+    try {
+      this.backgroundAudio = new Audio(config.file);
+      this.backgroundAudio.loop = true;
+      this.backgroundAudio.preload = 'auto';
+      this.backgroundAudio.volume = 0; // Start muted, will be set by volume control
 
-    this.backgroundNoiseState.selectedNoise = config;
-    this.backgroundNoiseState.isPlaying = false; // Don't auto-play, wait for user to start meditation
-    this.updateBackgroundVolume();
-    
-    console.log('🎵 Background noise loaded:', config.name);
+      // Add error handling for audio loading
+      this.backgroundAudio.addEventListener('error', (e) => {
+        console.error('🎵 Background noise loading error:', e);
+        console.error('🎵 Failed to load:', config.file);
+        console.error('🎵 Error details:', {
+          error: e,
+          code: this.backgroundAudio?.error?.code,
+          message: this.backgroundAudio?.error?.message
+        });
+      });
+
+      this.backgroundAudio.addEventListener('canplaythrough', () => {
+        console.log('🎵 Background noise ready to play:', config.name);
+      });
+
+      this.backgroundNoiseState.selectedNoise = config;
+      this.backgroundNoiseState.isPlaying = false; // Don't auto-play, wait for user to start meditation
+      this.updateBackgroundVolume();
+      
+      console.log('🎵 Background noise loaded:', config.name, 'File:', config.file);
+    } catch (error) {
+      console.error('🎵 Failed to create background audio:', error);
+      console.error('🎵 Config:', config);
+    }
   }
 
   /**
@@ -110,11 +130,32 @@ export class SimpleAudioMixer {
       // Start background noise if selected and loaded
       if (this.backgroundAudio && this.backgroundNoiseState.selectedNoise) {
         try {
-          await this.backgroundAudio.play();
-          this.backgroundNoiseState.isPlaying = true;
-          console.log('🎵 Background noise started:', this.backgroundNoiseState.selectedNoise.name);
+          // Check if audio is ready to play
+          if (this.backgroundAudio.readyState >= 2) { // HAVE_CURRENT_DATA or higher
+            await this.backgroundAudio.play();
+            this.backgroundNoiseState.isPlaying = true;
+            console.log('🎵 Background noise started:', this.backgroundNoiseState.selectedNoise.name);
+          } else {
+            console.warn('🎵 Background noise not ready to play, readyState:', this.backgroundAudio.readyState);
+            // Try to load it first
+            this.backgroundAudio.load();
+            this.backgroundAudio.addEventListener('canplaythrough', async () => {
+              try {
+                await this.backgroundAudio!.play();
+                this.backgroundNoiseState.isPlaying = true;
+                console.log('🎵 Background noise started after loading:', this.backgroundNoiseState.selectedNoise!.name);
+              } catch (playError) {
+                console.error('🎵 Failed to play background noise after loading:', playError);
+              }
+            });
+          }
         } catch (bgError) {
-          console.warn('Failed to play background noise:', bgError);
+          console.error('🎵 Failed to play background noise:', bgError);
+          console.error('🎵 Background audio state:', {
+            readyState: this.backgroundAudio.readyState,
+            error: this.backgroundAudio.error,
+            src: this.backgroundAudio.src
+          });
           // Continue with meditation even if background fails
         }
       } else {

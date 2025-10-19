@@ -33,9 +33,14 @@
   - States: compact → expanded (from chat view)
   - Improve mobile UX with native-feeling drawer interactions
 
-- [ ] Add background noises
-  - See how we can make them last as far as 20 minutes
-  - Research ambient sound loops and layering techniques
+- [x] Add background noises ✅
+  - [x] Implemented background noise system with 4 ambient sounds
+  - [x] Ocean waves, rain, focus music, and relaxation frequencies
+  - [x] Volume control and selection drawer
+  - [x] Audio mixing with meditation audio
+  - [ ] **Fix background noise on deployed version** - Investigate production issues
+  - [ ] **Fix protected chat audio player on deployed version** - Ensure functionality in production
+  - [ ] **Fix audio loading bug on deployed mobile and desktop** - Debug production audio issues
 
 - [x] Change female voice to fit naturally
   - Improve voice naturalness and flow
