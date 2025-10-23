@@ -1,5 +1,83 @@
 # Neiji - TODO
 
+## 🚨 UXR CRITICAL (Before Next Interviews)
+
+### Interview #001 Learnings (Mathis - Jan 2025)
+**Status:** Persona invalide (2/5 match) - Had existing solutions that work  
+**Key Insight:** Onboarding catastrophique, questionnaire = killer  
+**Full synthesis:** See `/docs/INTERVIEW_001_SYNTHESE.md`
+
+### 🔴 BLOCKERS - Fix BEFORE recruiting next participants
+
+- [ ] **CRITICAL: Fix Onboarding Flow**
+  - Problem: Users don't know what to do when arriving on chat
+  - User quote: "Il sait pas quoi faire en arrivant, gros problème d'onboarding"
+  - Solution A: Quick Start with 4 preset buttons (morning/focus/calm/sleep)
+  - Solution B: Conversational onboarding with guided steps
+  - Files to modify: `src/components/chat/shared/chat-input.tsx`, `src/app/(landing)/chat/page.tsx`
+  - **Deadline:** Before Interview #002
+
+- [ ] **CRITICAL: Remove/Postpone Initial Questionnaire**
+  - Problem: Too much cognitive load before showing value
+  - User quote: "Les questions sont chiantes, personne va le faire comme ça. Il a grave la flemme."
+  - Solution: Let users generate 1-2 meditations first, THEN ask personalization questions
+  - Alternative: Learn passively from their choices
+  - Files to modify: Remove questionnaire flow from chat
+  - **Deadline:** Before Interview #002
+
+- [ ] **CRITICAL: Make Meditation Mode Discoverable**
+  - Problem: Users can't find the brain button / meditation drawer
+  - Observation: "Il essaie de générer sans appuyer sur le mode meditation"
+  - Solution: Add tooltip on first load, improve empty state messaging
+  - Files to modify: `src/components/chat/shared/chat-input.tsx`, `src/components/chat/shared/meditation-drawer.tsx`
+  - **Deadline:** Before Interview #002
+
+### 🟡 HIGH PRIORITY - Improve for better testing
+
+- [ ] **Improve Generation Wait Time Feedback**
+  - Problem: 90 sec wait creates anxiety, users don't know what to do
+  - Observation: "Il a envie de mettre le son ou d'appuyer en attendant"
+  - Solution: Add breathing animation, progress indicator, or mini-exercise during wait
+  - Target: Reduce to <30 seconds ideally
+  - Files: `src/components/chat/shared/meditation-loading.tsx`
+
+- [ ] **Clarify Landing Page Value Proposition**
+  - Problem: Users don't understand what Neiji does in 5 seconds
+  - Observation: "Présentation du front page bizarre, il comprend pas trop"
+  - Solution: Rewrite hero copy, test "La méditation qui s'adapte à toi, pas l'inverse"
+  - Files: `src/app/(landing)/_components/hero.tsx`
+
+### 📊 UXR NEXT STEPS
+
+- [ ] **Recruit 5-7 BETTER Persona Matches**
+  - ✅ Has regular stress/anxiety (weekly minimum)
+  - ✅ Has tried meditation but couldn't stick with it
+  - ✅ Does NOT have effective solutions already
+  - ✅ Less "meta" / product-savvy than Mathis
+  - See: `/docs/UXR_RECRUITMENT_GUIDE.md`
+
+- [ ] **Prepare for Interview #002-006**
+  - [ ] Fix the 3 critical blockers above
+  - [ ] Print `/docs/UXR_CHECKLIST_JOUR_J.md`
+  - [ ] Setup transcription AI (Otter.ai)
+  - [ ] Practice "creuser" technique (5 whys)
+  
+### 🎯 Hypotheses to Validate (After fixing onboarding)
+
+**From Interview #001:**
+- ❌ H1 (Problem exists): Not tested - persona invalide
+- ❌ H2 (Solutions insufficient): Not tested - he has effective solutions
+- ❓ H3 (Personalization > wait): Not tested - bugs blocked the flow
+- 🤔 H4 (Meditation alone): Interesting insight on "meditation as state" vs "formal activity"
+- ❓ H5 (Chat > Parameters): Not tested - drawer not accessible
+- ❌ H6 (Mascot engages): Invalidated for "meta" users, but need to test with others
+- ✅ H7 (Onboarding blocks): VALIDATED - completely lost, questionnaire killer
+- ✅ H8 (Evening time): Partially validated - "sas de décompression" concept
+
+**Full framework:** See `/docs/UX_RESEARCH_FRAMEWORK.md`
+
+---
+
 ## 🔥 High Priority
 
 ### ✅ Google OAuth - FIXED (needs setup)
@@ -50,9 +128,113 @@
   - Improve precision based on context
   - Refine prompts and structure for better quality
 
-- [ ] Add Stripe payment integration
-  - Think about business model
-  - Implement payment flow and subscription system
+- [ ] **Business Model: "Flowers" Token System + Stripe Integration**
+  
+  **💡 Concept:**
+  - Virtual currency called "Flowers" (🌸)
+  - Each meditation costs flowers based on duration (~1 flower per 10 seconds)
+  - Examples: 3min = 18 flowers, 10min = 60 flowers, 20min = 120 flowers
+  - New users get X free flowers to start
+  - Users can buy flower packs via Stripe
+  
+  **🎯 Business Model Strategy:**
+  - [ ] Define pricing tiers:
+    - Freemium: X flowers/month (e.g., 50 flowers = ~8min of meditation)
+    - Small pack: €X for Y flowers
+    - Medium pack: €X for Y flowers (better value)
+    - Large pack: €X for Y flowers (best value)
+    - Subscription: €X/month for unlimited or large monthly allowance
+  - [ ] Define what happens when out of flowers:
+    - Soft paywall with clear value prop
+    - "Preview" mode (first 30 sec free?)
+    - Limited generic meditations available?
+  - [ ] Competitive analysis: Calm (~€60/year), Headspace (~€50/year)
+  - [ ] Calculate unit economics (generation cost vs. pricing)
+  
+  **🎨 UX/UI Design:**
+  - [ ] Flower balance display (always visible in header/chat)
+  - [ ] Cost preview before generating ("This meditation will cost 60 🌸")
+  - [ ] Celebration when receiving flowers (animation, confetti)
+  - [ ] Empty state when out of flowers (upgrade CTA)
+  - [ ] Purchase flow (modal, smooth, reassuring)
+  - [ ] Gift flowers feature (referral program?)
+  - [ ] Streak rewards (daily meditation = bonus flowers)
+  - [ ] Achievement system (unlock free flowers)
+  
+  **🔧 Technical Implementation:**
+  - [ ] Database schema:
+    - `user_credits` table: user_id, flower_balance, last_updated
+    - `credit_transactions` table: user_id, amount, type (earned/spent/purchased), meditation_id, timestamp
+    - `purchase_history` table: user_id, stripe_payment_id, flowers_purchased, amount_paid, timestamp
+  - [ ] API endpoints:
+    - GET `/api/user/flowers` - Get current balance
+    - POST `/api/meditation/generate` - Check & deduct flowers before generation
+    - POST `/api/flowers/purchase` - Stripe checkout session
+    - POST `/api/webhooks/stripe` - Handle successful payments
+  - [ ] Flower management:
+    - Atomic transactions (prevent race conditions)
+    - Rollback if meditation generation fails
+    - Audit log of all flower transactions
+  - [ ] Cost calculation logic:
+    - Function: `calculateMeditationCost(duration_seconds)` 
+    - Example: `Math.ceil(duration_seconds / 10)` flowers
+    - Display cost before user confirms generation
+  
+  **🔒 Security & Validation:**
+  - [ ] Server-side flower balance checks (NEVER trust client)
+  - [ ] Rate limiting on flower purchases (prevent fraud)
+  - [ ] Validate Stripe webhooks (signature verification)
+  - [ ] RLS policies in Supabase (users can only see their own balance)
+  - [ ] Prevent negative balances (atomic decrement with check)
+  - [ ] Log suspicious activity (rapid purchases, chargebacks)
+  
+  **💳 Stripe Integration:**
+  - [ ] Setup Stripe account + API keys
+  - [ ] Create products in Stripe Dashboard:
+    - Small Flower Pack
+    - Medium Flower Pack  
+    - Large Flower Pack
+    - Monthly Subscription (if applicable)
+  - [ ] Implement Stripe Checkout flow
+  - [ ] Handle webhook events:
+    - `checkout.session.completed` → Add flowers to user
+    - `payment_intent.succeeded` → Confirm transaction
+    - `charge.refunded` → Deduct flowers back
+  - [ ] Test mode first, then production
+  - [ ] Handle errors gracefully (payment failed, etc.)
+  
+  **📊 Analytics & Monitoring:**
+  - [ ] Track conversion rate (free → paid)
+  - [ ] Monitor average flowers spent per user
+  - [ ] A/B test pricing tiers
+  - [ ] Identify optimal free flower amount
+  - [ ] Churn analysis (users who run out and don't buy)
+  
+  **🎁 Growth & Retention:**
+  - [ ] Welcome bonus (X flowers on signup)
+  - [ ] Daily login reward (small flower amount)
+  - [ ] Referral program (both users get flowers)
+  - [ ] Seasonal promotions (double flowers, discount packs)
+  - [ ] Streak rewards (meditate X days in a row = bonus)
+  - [ ] Achievement unlocks (50 meditations = free pack)
+  
+  **Files to create/modify:**
+  - `src/app/api/flowers/*` (flower management endpoints)
+  - `src/app/api/stripe/*` (Stripe checkout & webhooks)
+  - `src/components/flowers/FlowerBalance.tsx` (display balance)
+  - `src/components/flowers/PurchaseModal.tsx` (buy flowers)
+  - `src/components/flowers/EmptyState.tsx` (out of flowers)
+  - `src/lib/flowers/calculate-cost.ts` (cost logic)
+  - `src/lib/stripe/client.ts` (Stripe client)
+  - `src/server/db/schema.ts` (add flowers tables)
+  - Database migrations for flowers system
+  
+  **💡 UXR Questions to Validate (in next interviews):**
+  - [ ] "Would you pay for personalized meditations? How much?"
+  - [ ] "Prefer: subscription (€X/month unlimited) or pay-per-use (buy packs)?"
+  - [ ] "Does a 'flower' currency feel playful or childish?"
+  - [ ] "How many free meditations before paywall feels right?"
+  - [ ] Show pricing tiers: "Which would you choose?"
 
 - [ ] Enhance system prompt
   - Improve AI guidance quality
@@ -62,6 +244,44 @@
   - Define features and user journey
   - Research optimal UX patterns
   - Refine website copy and messaging
+
+- [ ] **Protected: Conversation Memory & Context**
+  - Store user conversation history in database (Supabase)
+  - Retrieve context when user returns (personalized greetings, continuity)
+  - Remember user preferences (favorite duration, voice, goals)
+  - Track meditation history for personalized recommendations
+  - Schema: conversations table with user_id, messages, meditation_params, timestamp
+  - File: `src/lib/conversation-history.ts` (already exists, needs enhancement)
+  - Related: `src/server/db/schema.ts` (add meditation_history table)
+
+- [ ] **Protected: Dashboard with Meditation History**
+  - List all previous meditation sessions with metadata:
+    - Date & time generated
+    - Duration, goal, voice, guidance level
+    - Play count (if tracking)
+    - Tags/categories
+  - Actions per meditation:
+    - Play/replay in-app
+    - Download MP3
+    - Favorite/bookmark
+    - Delete
+    - Share (future)
+  - Filters & search:
+    - By date range
+    - By goal (morning, focus, calm, sleep)
+    - By duration
+  - Stats/insights:
+    - Total meditations generated
+    - Most used goals
+    - Streak tracking (future gamification)
+  - Files: 
+    - `src/app/protected/dashboard/page.tsx` (new)
+    - `src/app/api/meditations/route.ts` (new - fetch user's meditations)
+  - Database: Create `meditation_sessions` table with user_id, audio_url, params, created_at
+
+- [ ] Protected: Feedback submission capability
+  - Add feedback form UI and server API endpoint
+  - Link from dashboard and chat views
 
 ### 🔒 Security
 - [ ] Security audit before launch

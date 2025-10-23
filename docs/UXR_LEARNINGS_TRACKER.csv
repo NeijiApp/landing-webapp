@@ -1,0 +1,18 @@
+Interview ID,Date,Participant Prénom,Âge,Occupation,Match Persona (1-5),,HYPOTHÈSE 1: Problème Existe,Quote H1,Validation H1 (Oui/Non/Partiel),Notes H1,,HYPOTHÈSE 2: Solutions Insuffisantes,Quote H2,Validation H2,Notes H2,,HYPOTHÈSE 3: Perso > Wait Time,Quote H3,Validation H3,Notes H3,,HYPOTHÈSE 4: Méditation Seule Suffit,Quote H4,Validation H4,Notes H4,,HYPOTHÈSE 5: Chat > Paramètres,Quote H5,Validation H5,Notes H5,,HYPOTHÈSE 6: Mascot Engage,Quote H6,Validation H6,Notes H6,,HYPOTHÈSE 7: Onboarding Bloque,Quote H7,Validation H7,Notes H7,,HYPOTHÈSE 8: Moment Matin/Soir,Quote H8,Validation H8,Notes H8,,INSIGHTS INATTENDUS,BUGS/FRICTIONS UX OBSERVÉS,FEATURE REQUESTS,WILLINGNESS TO PAY (€/mois),NPS (0-10),SYNTHÈSE 3 POINTS CLÉS
+001,2025-01-XX,Mathis,XX,Product,2/5,,,"Pas trop utiliser la méditation : parce que les autres activités marchent très bien",Non,"Persona invalide - Il a déjà des rituels qui fonctionnent (douche froide, écriture). N'a PAS le problème que Neiji résout.",,,"La douche froide est une forme de méditation",Non,"Utilise déjà des alternatives efficaces. Pas dans la cible car trop 'meta' et éduqué sur méditation (père méditant).",,,Non testé,N/A,"Wait time pas vraiment testé car problèmes d'onboarding ont bloqué l'expérience",,,"Conçoit pas la méditation comme une activité réservée, plutôt un état",N/A,"Intéressant : méditation comme état vs. activité formelle. Opportunité produit ?",,,"N'a pas pu accéder au drawer, boutons manquants",N/A,"Bugs techniques ont empêché de tester cette hypothèse",,,"Vision meta des mascottes. Parler à ChatGPT = pas d'investissement émotionnel",Non,"Pour les users 'meta', la personnification ne crée pas de connexion. Manque d'honnêteté perçu.",,,"Il sait pas quoi faire en arrivant. Gros problème d'onboarding. Questions chiantes.",Oui,"Complètement perdu à l'arrivée. Questionnaire = killer. Veut onboarding avec propositions, pas champ libre.",,,"Essaie de dégager des moments, soir = sas de décompression",Partiel,"Cherche rituel du soir (douche → écriture). 'Sas de décompression' = concept clé.",,"- Méditation comme 'état' plutôt qu'activité formelle
+- Sentiment de 'surchauffe' physiologique = pain point exploitable
+- Trigger de méditation vient des contenus consommés (podcasts, etc.)
+- ChatGPT utilisé pour parler de vie perso (comportement existant)","- Messages de bienvenue n'apparaissent pas
+- Boutons mode meditation (expanded) pas visibles
+- Questionnaire trop long/cognitif = abandon
+- Landing page manifesto bizarre
+- Génération un peu longue, veut ajuster son pendant","- Onboarding avec propositions guidées (type chat avec boutons)
+- Indication visuelle de progression pendant génération
+- Réduire friction à l'entrée",N/A,N/A,"1. Persona invalide - a déjà solutions efficaces
+2. Onboarding catastrophique - perdu à l'arrivée
+3. Questionnaire = obstacle majeur"
+002,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+003,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+004,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+005,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+

@@ -31,15 +31,54 @@ export function EnhancedAudioPlayer({
 	const [volume, setVolume] = useState(1);
 	const [isMuted, setIsMuted] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
+	const [loadError, setLoadError] = useState<string | null>(null);
 	const audioRef = useRef<HTMLAudioElement | null>(null);
+	const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 	useEffect(() => {
-		const audio = new Audio(audioUrl);
+		console.log("[Audio Player] Initializing with URL:", audioUrl.substring(0, 100));
+		const audio = new Audio();
 		audioRef.current = audio;
+		
+		// Set preload to auto for better mobile compatibility
+		audio.preload = "auto";
+		
+		let isLoaded = false;
 
-		const handleLoadedMetadata = () => {
+		const handleLoadSuccess = () => {
+			if (isLoaded) return;
+			isLoaded = true;
+			
+			console.log("[Audio Player] Audio loaded successfully, duration:", audio.duration);
 			setDuration(audio.duration);
 			setIsLoading(false);
+			setLoadError(null);
+			
+			// Clear timeout on successful load
+			if (loadingTimeoutRef.current) {
+				clearTimeout(loadingTimeoutRef.current);
+				loadingTimeoutRef.current = null;
+			}
+		};
+
+		const handleLoadedMetadata = () => {
+			console.log("[Audio Player] loadedmetadata event fired");
+			handleLoadSuccess();
+		};
+		
+		const handleCanPlay = () => {
+			console.log("[Audio Player] canplay event fired");
+			handleLoadSuccess();
+		};
+		
+		const handleCanPlayThrough = () => {
+			console.log("[Audio Player] canplaythrough event fired");
+			handleLoadSuccess();
+		};
+		
+		const handleLoadedData = () => {
+			console.log("[Audio Player] loadeddata event fired");
+			handleLoadSuccess();
 		};
 
 		const handleTimeUpdate = () => {
@@ -51,22 +90,86 @@ export function EnhancedAudioPlayer({
 			setCurrentTime(0);
 		};
 
-		const handleError = () => {
+		const handleError = (e: Event | ErrorEvent) => {
+			console.error("[Audio Player] Error loading audio:", e);
+			console.error("[Audio Player] Audio error details:", {
+				error: audio.error,
+				networkState: audio.networkState,
+				readyState: audio.readyState,
+				src: audio.src.substring(0, 100)
+			});
+			
 			setIsLoading(false);
-			console.error("Audio loading error");
+			
+			// Provide user-friendly error message
+			let errorMsg = "Failed to load audio";
+			if (audio.error) {
+				switch (audio.error.code) {
+					case MediaError.MEDIA_ERR_ABORTED:
+						errorMsg = "Audio loading was aborted";
+						break;
+					case MediaError.MEDIA_ERR_NETWORK:
+						errorMsg = "Network error while loading audio";
+						break;
+					case MediaError.MEDIA_ERR_DECODE:
+						errorMsg = "Audio decoding failed";
+						break;
+					case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+						errorMsg = "Audio format not supported on this device";
+						break;
+				}
+			}
+			setLoadError(errorMsg);
+			
+			// Clear timeout on error
+			if (loadingTimeoutRef.current) {
+				clearTimeout(loadingTimeoutRef.current);
+				loadingTimeoutRef.current = null;
+			}
 		};
 
+		// Add multiple event listeners for better mobile compatibility
 		audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+		audio.addEventListener("canplay", handleCanPlay);
+		audio.addEventListener("canplaythrough", handleCanPlayThrough);
+		audio.addEventListener("loadeddata", handleLoadedData);
 		audio.addEventListener("timeupdate", handleTimeUpdate);
 		audio.addEventListener("ended", handleEnded);
 		audio.addEventListener("error", handleError);
 
+		// Set source and explicitly load
+		audio.src = audioUrl;
+		audio.load();
+		
+		// Set a timeout to detect stuck loading (15 seconds)
+		loadingTimeoutRef.current = setTimeout(() => {
+			if (isLoading && !isLoaded) {
+				console.error("[Audio Player] Loading timeout - audio failed to load within 15s");
+				setLoadError("Audio loading timeout. Please try again or check your connection.");
+				setIsLoading(false);
+			}
+		}, 15000);
+
 		return () => {
 			audio.pause();
 			audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+			audio.removeEventListener("canplay", handleCanPlay);
+			audio.removeEventListener("canplaythrough", handleCanPlayThrough);
+			audio.removeEventListener("loadeddata", handleLoadedData);
 			audio.removeEventListener("timeupdate", handleTimeUpdate);
 			audio.removeEventListener("ended", handleEnded);
 			audio.removeEventListener("error", handleError);
+			
+			// Clear timeout on cleanup
+			if (loadingTimeoutRef.current) {
+				clearTimeout(loadingTimeoutRef.current);
+				loadingTimeoutRef.current = null;
+			}
+			
+			// Revoke blob URL if it's a blob to free memory
+			if (audioUrl.startsWith("blob:")) {
+				URL.revokeObjectURL(audioUrl);
+			}
 		};
 	}, [audioUrl]);
 
@@ -146,6 +249,30 @@ export function EnhancedAudioPlayer({
 
 	const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+	// Show error state
+	if (loadError) {
+		return (
+			<div
+				className={cn(
+					"rounded-xl border border-red-300 bg-gradient-to-r from-red-100 to-red-200 p-4",
+					className,
+				)}
+			>
+				<div className="flex flex-col items-center justify-center gap-2 text-red-700">
+					<span className="font-semibold text-sm">⚠️ Audio Error</span>
+					<span className="text-center text-xs">{loadError}</span>
+					<button
+						onClick={() => window.location.reload()}
+						className="mt-2 rounded-md bg-red-500 px-3 py-1 text-white text-xs hover:bg-red-600"
+					>
+						Reload Page
+					</button>
+				</div>
+			</div>
+		);
+	}
+
+	// Show loading state
 	if (isLoading) {
 		return (
 			<div

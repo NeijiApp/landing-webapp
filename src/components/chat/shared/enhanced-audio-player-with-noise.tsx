@@ -42,6 +42,7 @@ export function EnhancedAudioPlayerWithNoise({
 	const [volume, setVolume] = useState(0.8); // Default to 80%
 	const [isMuted, setIsMuted] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
+	const [loadError, setLoadError] = useState<string | null>(null);
 	const [showNoiseDrawer, setShowNoiseDrawer] = useState(false);
 	const [backgroundNoiseState, setBackgroundNoiseState] = useState<BackgroundNoiseState>(DEFAULT_BACKGROUND_NOISE_STATE);
 	
@@ -65,11 +66,29 @@ export function EnhancedAudioPlayerWithNoise({
 	// Load meditation audio when URL changes
 	useEffect(() => {
 		if (audioUrl && audioMixerRef.current) {
+			console.log('[AudioPlayer] Loading meditation audio...');
 			audioMixerRef.current.loadMeditationAudio(audioUrl).then(() => {
+				console.log('[AudioPlayer] Meditation audio loaded successfully');
 				setIsLoading(false);
+				setLoadError(null);
 			}).catch((error) => {
-				console.error('Failed to load meditation audio:', error);
+				console.error('[AudioPlayer] Failed to load meditation audio:', error);
 				setIsLoading(false);
+				
+				// Provide user-friendly error message
+				let errorMsg = 'Failed to load meditation audio';
+				if (error instanceof Error) {
+					if (error.message.includes('timeout')) {
+						errorMsg = 'Audio loading timeout. Please check your connection and try again.';
+					} else if (error.message.includes('network')) {
+						errorMsg = 'Network error while loading audio. Please check your connection.';
+					} else if (error.message.includes('decode')) {
+						errorMsg = 'Audio format error. The file may be corrupted.';
+					} else if (error.message.includes('not supported')) {
+						errorMsg = 'Audio format not supported on this device.';
+					}
+				}
+				setLoadError(errorMsg);
 			});
 		}
 	}, [audioUrl]);
@@ -181,6 +200,30 @@ export function EnhancedAudioPlayerWithNoise({
 
 	const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+	// Show error state
+	if (loadError) {
+		return (
+			<div
+				className={cn(
+					"rounded-xl border border-red-300 bg-gradient-to-r from-red-100 to-red-200 p-4",
+					className,
+				)}
+			>
+				<div className="flex flex-col items-center justify-center gap-2 text-red-700">
+					<span className="font-semibold text-sm">⚠️ Audio Error</span>
+					<span className="text-center text-xs">{loadError}</span>
+					<button
+						onClick={() => window.location.reload()}
+						className="mt-2 rounded-md bg-red-500 px-3 py-1 text-white text-xs hover:bg-red-600"
+					>
+						Reload Page
+					</button>
+				</div>
+			</div>
+		);
+	}
+
+	// Show loading state
 	if (isLoading) {
 		return (
 			<div

@@ -32,6 +32,8 @@ export class SimpleAudioMixer {
    * Load meditation audio
    */
   async loadMeditationAudio(audioUrl: string): Promise<void> {
+    console.log('[SimpleAudioMixer] Loading meditation audio:', audioUrl.substring(0, 100));
+    
     // Clean up existing meditation audio
     if (this.meditationAudio) {
       this.meditationAudio.pause();
@@ -40,37 +42,84 @@ export class SimpleAudioMixer {
       this.meditationAudio = null;
     }
 
-    this.meditationAudio = new Audio(audioUrl);
+    this.meditationAudio = new Audio();
     this.meditationAudio.loop = false;
     this.meditationAudio.preload = 'auto';
-    this.meditationAudio.volume = 1.0; // Meditation volume always at 100%
+    this.meditationAudio.volume = 0.8; // Reduce meditation guidance volume by 20%
 
     // Add event listeners
     this.meditationAudio.addEventListener('timeupdate', this.handleTimeUpdate.bind(this));
     this.meditationAudio.addEventListener('ended', this.handleMeditationEnded.bind(this));
 
-    // Wait for audio to be ready
+    // Wait for audio to be ready with multiple event listeners for mobile compatibility
     return new Promise((resolve, reject) => {
       if (!this.meditationAudio) {
         reject(new Error('Meditation audio not initialized'));
         return;
       }
 
-      const handleCanPlay = () => {
-        this.meditationAudio?.removeEventListener('canplaythrough', handleCanPlay);
+      let isLoaded = false;
+      let timeoutId: NodeJS.Timeout;
+
+      const handleSuccess = () => {
+        if (isLoaded) return;
+        isLoaded = true;
+
+        console.log('[SimpleAudioMixer] Audio loaded successfully, duration:', this.meditationAudio?.duration);
+        
+        // Clean up all event listeners
+        this.meditationAudio?.removeEventListener('loadedmetadata', handleSuccess);
+        this.meditationAudio?.removeEventListener('canplay', handleSuccess);
+        this.meditationAudio?.removeEventListener('canplaythrough', handleSuccess);
+        this.meditationAudio?.removeEventListener('loadeddata', handleSuccess);
         this.meditationAudio?.removeEventListener('error', handleError);
+        
+        clearTimeout(timeoutId);
         this.updateState();
         resolve();
       };
 
-      const handleError = (error: Event) => {
-        this.meditationAudio?.removeEventListener('canplaythrough', handleCanPlay);
+      const handleError = (error: Event | ErrorEvent) => {
+        if (isLoaded) return;
+        isLoaded = true;
+
+        console.error('[SimpleAudioMixer] Error loading audio:', error);
+        console.error('[SimpleAudioMixer] Audio error details:', {
+          error: this.meditationAudio?.error,
+          networkState: this.meditationAudio?.networkState,
+          readyState: this.meditationAudio?.readyState,
+          src: this.meditationAudio?.src?.substring(0, 100)
+        });
+        
+        // Clean up all event listeners
+        this.meditationAudio?.removeEventListener('loadedmetadata', handleSuccess);
+        this.meditationAudio?.removeEventListener('canplay', handleSuccess);
+        this.meditationAudio?.removeEventListener('canplaythrough', handleSuccess);
+        this.meditationAudio?.removeEventListener('loadeddata', handleSuccess);
         this.meditationAudio?.removeEventListener('error', handleError);
+        
+        clearTimeout(timeoutId);
         reject(error);
       };
 
-      this.meditationAudio.addEventListener('canplaythrough', handleCanPlay);
+      // Add multiple event listeners for better mobile compatibility
+      this.meditationAudio.addEventListener('loadedmetadata', handleSuccess);
+      this.meditationAudio.addEventListener('canplay', handleSuccess);
+      this.meditationAudio.addEventListener('canplaythrough', handleSuccess);
+      this.meditationAudio.addEventListener('loadeddata', handleSuccess);
       this.meditationAudio.addEventListener('error', handleError);
+
+      // Set source and explicitly load
+      this.meditationAudio.src = audioUrl;
+      this.meditationAudio.load();
+
+      // Set a timeout to detect stuck loading (15 seconds)
+      timeoutId = setTimeout(() => {
+        if (!isLoaded) {
+          console.error('[SimpleAudioMixer] Loading timeout - audio failed to load within 15s');
+          handleError(new Event('timeout'));
+        }
+      }, 15000);
     });
   }
 
@@ -85,24 +134,41 @@ export class SimpleAudioMixer {
     }
 
     try {
+      console.log('🎵 Creating background audio for:', config.name, 'File:', config.file);
+      
       this.backgroundAudio = new Audio(config.file);
       this.backgroundAudio.loop = true;
       this.backgroundAudio.preload = 'auto';
       this.backgroundAudio.volume = 0; // Start muted, will be set by volume control
 
-      // Add error handling for audio loading
+      // Add comprehensive error handling for audio loading
       this.backgroundAudio.addEventListener('error', (e) => {
         console.error('🎵 Background noise loading error:', e);
         console.error('🎵 Failed to load:', config.file);
         console.error('🎵 Error details:', {
           error: e,
           code: this.backgroundAudio?.error?.code,
-          message: this.backgroundAudio?.error?.message
+          message: this.backgroundAudio?.error?.message,
+          src: this.backgroundAudio?.src,
+          readyState: this.backgroundAudio?.readyState,
+          networkState: this.backgroundAudio?.networkState
         });
       });
 
       this.backgroundAudio.addEventListener('canplaythrough', () => {
         console.log('🎵 Background noise ready to play:', config.name);
+      });
+
+      this.backgroundAudio.addEventListener('loadstart', () => {
+        console.log('🎵 Background noise loading started:', config.name);
+      });
+
+      this.backgroundAudio.addEventListener('loadeddata', () => {
+        console.log('🎵 Background noise data loaded:', config.name);
+      });
+
+      this.backgroundAudio.addEventListener('loadedmetadata', () => {
+        console.log('🎵 Background noise metadata loaded:', config.name);
       });
 
       this.backgroundNoiseState.selectedNoise = config;
@@ -254,11 +320,10 @@ export class SimpleAudioMixer {
    * Update background volume based on current settings
    */
   private updateBackgroundVolume(): void {
-    if (this.backgroundAudio && this.backgroundNoiseState.selectedNoise) {
-      const baseVolume = this.backgroundNoiseState.selectedNoise.defaultVolume;
-      const userVolume = this.backgroundNoiseState.volume;
-      // Increase max volume by 50% (multiply by 1.5)
-      this.backgroundAudio.volume = Math.min(1.0, baseVolume * userVolume * 1.5);
+    if (this.backgroundAudio) {
+      // Boost background max by 2x across the continuum, clamped to 1.0
+      const userVolume = Math.max(0, Math.min(1, this.backgroundNoiseState.volume));
+      this.backgroundAudio.volume = Math.min(1.0, userVolume * 2);
     }
   }
 

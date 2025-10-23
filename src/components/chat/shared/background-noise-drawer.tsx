@@ -74,11 +74,40 @@ export function BackgroundNoiseDrawer({
     }
 
     try {
+      console.log('🎵 Starting preview for:', config.name, 'File:', config.file);
+      
       const audio = new Audio(config.file);
       audio.loop = true;
       audio.volume = config.defaultVolume * 0.5; // Fixed volume for preview
       
+      // Add comprehensive error handling
+      audio.addEventListener('error', (e) => {
+        console.error('🎵 Preview audio error:', e);
+        console.error('🎵 Error details:', {
+          error: e,
+          code: audio.error?.code,
+          message: audio.error?.message,
+          src: audio.src,
+          readyState: audio.readyState
+        });
+        setIsPreviewing(null);
+        setPreviewAudio(null);
+      });
+
+      audio.addEventListener('canplaythrough', () => {
+        console.log('🎵 Preview audio ready to play:', config.name);
+      });
+
+      audio.addEventListener('loadstart', () => {
+        console.log('🎵 Preview audio loading started:', config.name);
+      });
+
+      audio.addEventListener('loadeddata', () => {
+        console.log('🎵 Preview audio data loaded:', config.name);
+      });
+      
       await audio.play();
+      console.log('🎵 Preview audio playing:', config.name);
       setPreviewAudio(audio);
       setIsPreviewing(config.id);
 
@@ -92,7 +121,10 @@ export function BackgroundNoiseDrawer({
         }
       }, 5000);
     } catch (error) {
-      console.error('Failed to preview audio:', error);
+      console.error('🎵 Failed to preview audio:', error);
+      console.error('🎵 Config:', config);
+      setIsPreviewing(null);
+      setPreviewAudio(null);
     }
   };
 
