@@ -4,6 +4,7 @@
  */
 
 import type { BackgroundNoiseConfig, BackgroundNoiseState } from './background-noise';
+import { DeploymentAudioLoader } from './deployment-audio-loader';
 
 export interface AudioMixerState {
   isPlaying: boolean;
@@ -136,41 +137,20 @@ export class SimpleAudioMixer {
     try {
       console.log('🎵 Creating background audio for:', config.name, 'File:', config.file);
       
-      this.backgroundAudio = new Audio(config.file);
-      this.backgroundAudio.loop = true;
-      this.backgroundAudio.preload = 'auto';
-      this.backgroundAudio.volume = 0; // Start muted, will be set by volume control
-
-      // Add comprehensive error handling for audio loading
-      this.backgroundAudio.addEventListener('error', (e) => {
-        console.error('🎵 Background noise loading error:', e);
-        console.error('🎵 Failed to load:', config.file);
-        console.error('🎵 Error details:', {
-          error: e,
-          code: this.backgroundAudio?.error?.code,
-          message: this.backgroundAudio?.error?.message,
-          src: this.backgroundAudio?.src,
-          readyState: this.backgroundAudio?.readyState,
-          networkState: this.backgroundAudio?.networkState
-        });
+      const result = await DeploymentAudioLoader.loadAudio(config.file, {
+        loop: true,
+        preload: 'auto',
+        volume: 0, // Start muted, will be set by volume control
       });
 
-      this.backgroundAudio.addEventListener('canplaythrough', () => {
-        console.log('🎵 Background noise ready to play:', config.name);
-      });
+      if (!result.success || !result.audio) {
+        console.error('🎵 Failed to load background noise:', result.error);
+        console.error('🎵 Error details:', result.details);
+        console.error('🎵 Config:', config);
+        return;
+      }
 
-      this.backgroundAudio.addEventListener('loadstart', () => {
-        console.log('🎵 Background noise loading started:', config.name);
-      });
-
-      this.backgroundAudio.addEventListener('loadeddata', () => {
-        console.log('🎵 Background noise data loaded:', config.name);
-      });
-
-      this.backgroundAudio.addEventListener('loadedmetadata', () => {
-        console.log('🎵 Background noise metadata loaded:', config.name);
-      });
-
+      this.backgroundAudio = result.audio;
       this.backgroundNoiseState.selectedNoise = config;
       this.backgroundNoiseState.isPlaying = false; // Don't auto-play, wait for user to start meditation
       this.updateBackgroundVolume();

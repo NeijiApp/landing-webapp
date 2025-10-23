@@ -11,6 +11,7 @@ import {
   DEFAULT_BACKGROUND_NOISE_STATE,
   BACKGROUND_NOISE_CONFIGS 
 } from "~/lib/audio/background-noise";
+import { DeploymentAudioLoader } from "~/lib/audio/deployment-audio-loader";
 import { 
   Volume2, 
   VolumeX, 
@@ -76,35 +77,21 @@ export function BackgroundNoiseDrawer({
     try {
       console.log('🎵 Starting preview for:', config.name, 'File:', config.file);
       
-      const audio = new Audio(config.file);
-      audio.loop = true;
-      audio.volume = config.defaultVolume * 0.5; // Fixed volume for preview
-      
-      // Add comprehensive error handling
-      audio.addEventListener('error', (e) => {
-        console.error('🎵 Preview audio error:', e);
-        console.error('🎵 Error details:', {
-          error: e,
-          code: audio.error?.code,
-          message: audio.error?.message,
-          src: audio.src,
-          readyState: audio.readyState
-        });
+      const result = await DeploymentAudioLoader.loadAudio(config.file, {
+        loop: true,
+        preload: 'auto',
+        volume: config.defaultVolume * 0.5, // Fixed volume for preview
+      });
+
+      if (!result.success || !result.audio) {
+        console.error('🎵 Failed to load preview audio:', result.error);
+        console.error('🎵 Error details:', result.details);
         setIsPreviewing(null);
         setPreviewAudio(null);
-      });
+        return;
+      }
 
-      audio.addEventListener('canplaythrough', () => {
-        console.log('🎵 Preview audio ready to play:', config.name);
-      });
-
-      audio.addEventListener('loadstart', () => {
-        console.log('🎵 Preview audio loading started:', config.name);
-      });
-
-      audio.addEventListener('loadeddata', () => {
-        console.log('🎵 Preview audio data loaded:', config.name);
-      });
+      const audio = result.audio;
       
       await audio.play();
       console.log('🎵 Preview audio playing:', config.name);

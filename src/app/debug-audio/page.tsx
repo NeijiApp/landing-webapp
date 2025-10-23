@@ -37,8 +37,8 @@ export default function DebugAudioPage() {
           fetchOk: response.ok,
           contentType: response.headers.get('content-type'),
           contentLength: response.headers.get('content-length'),
-          audioError: null,
-          audioReadyState: null,
+          audioError: null as { code: number | undefined; message: string | undefined } | null,
+          audioReadyState: null as number | null,
         };
 
         audio.addEventListener('error', (e) => {
@@ -86,6 +86,17 @@ export default function DebugAudioPage() {
     }
   };
 
+  const testDeploymentEndpoint = async () => {
+    try {
+      const response = await fetch('/api/debug-audio-deployment');
+      const data = await response.json();
+      console.log('Deployment debug result:', data);
+      setResults(data.data?.results || []);
+    } catch (error) {
+      console.error('Deployment debug error:', error);
+    }
+  };
+
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Audio Files Debug</h1>
@@ -96,6 +107,9 @@ export default function DebugAudioPage() {
         </Button>
         <Button onClick={testApiEndpoint} variant="outline">
           Test via API Endpoint
+        </Button>
+        <Button onClick={testDeploymentEndpoint} variant="outline">
+          Test Deployment Debug
         </Button>
       </div>
 

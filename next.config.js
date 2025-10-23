@@ -13,6 +13,32 @@ const config = {
 		ignoreDuringBuilds: false,
 		dirs: ["src", "pages", "app"], // Only lint these directories
 	},
+	// Handle large audio files
+	experimental: {
+		largePageDataBytes: 128 * 1024 * 1024, // 128MB
+	},
+	// Add headers for audio files
+	async headers() {
+		return [
+			{
+				source: '/background-noise/:path*',
+				headers: [
+					{
+						key: 'Cache-Control',
+						value: 'public, max-age=31536000, immutable',
+					},
+					{
+						key: 'Content-Type',
+						value: 'audio/mpeg',
+					},
+					{
+						key: 'Accept-Ranges',
+						value: 'bytes',
+					},
+				],
+			},
+		];
+	},
 };
 
 export default config;
