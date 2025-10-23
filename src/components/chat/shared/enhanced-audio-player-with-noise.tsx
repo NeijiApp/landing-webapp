@@ -24,6 +24,7 @@ import {
 } from "~/lib/audio/background-noise";
 import { SimpleAudioMixer } from "~/lib/audio/simple-audio-mixer";
 import type { AudioMixerState } from "~/lib/audio/simple-audio-mixer";
+import { MobileAudioHandler } from "~/lib/audio/mobile-audio-handler";
 
 interface EnhancedAudioPlayerWithNoiseProps {
 	audioUrl: string;
@@ -114,6 +115,9 @@ export function EnhancedAudioPlayerWithNoise({
 		if (!audioMixerRef.current) return;
 
 		try {
+			// Mark user interaction for mobile audio
+			MobileAudioHandler.markUserInteraction();
+			
 			if (isPlaying) {
 				audioMixerRef.current.pause();
 			} else {
@@ -121,6 +125,7 @@ export function EnhancedAudioPlayerWithNoise({
 			}
 		} catch (error) {
 			console.error('Playback error:', error);
+			console.error('Mobile audio status:', MobileAudioHandler.getMobileAudioStatus());
 		}
 	};
 

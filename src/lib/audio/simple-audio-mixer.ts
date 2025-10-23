@@ -5,6 +5,7 @@
 
 import type { BackgroundNoiseConfig, BackgroundNoiseState } from './background-noise';
 import { DeploymentAudioLoader } from './deployment-audio-loader';
+import { MobileAudioHandler } from './mobile-audio-handler';
 
 export interface AudioMixerState {
   isPlaying: boolean;
@@ -167,10 +168,17 @@ export class SimpleAudioMixer {
    */
   async play(): Promise<void> {
     try {
+      // Initialize mobile audio on first play
+      await MobileAudioHandler.initializeOnUserInteraction();
+
       // Start meditation audio
       if (this.meditationAudio) {
-        await this.meditationAudio.play();
-        console.log('🎵 Meditation audio started');
+        const meditationPlayed = await MobileAudioHandler.playAudio(this.meditationAudio);
+        if (meditationPlayed) {
+          console.log('🎵 Meditation audio started');
+        } else {
+          console.warn('🎵 Meditation audio failed to start (mobile autoplay policy?)');
+        }
       }
 
       // Start background noise if selected and loaded
@@ -178,18 +186,26 @@ export class SimpleAudioMixer {
         try {
           // Check if audio is ready to play
           if (this.backgroundAudio.readyState >= 2) { // HAVE_CURRENT_DATA or higher
-            await this.backgroundAudio.play();
-            this.backgroundNoiseState.isPlaying = true;
-            console.log('🎵 Background noise started:', this.backgroundNoiseState.selectedNoise.name);
+            const backgroundPlayed = await MobileAudioHandler.playAudio(this.backgroundAudio);
+            if (backgroundPlayed) {
+              this.backgroundNoiseState.isPlaying = true;
+              console.log('🎵 Background noise started:', this.backgroundNoiseState.selectedNoise.name);
+            } else {
+              console.warn('🎵 Background noise failed to start (mobile autoplay policy?)');
+            }
           } else {
             console.warn('🎵 Background noise not ready to play, readyState:', this.backgroundAudio.readyState);
             // Try to load it first
             this.backgroundAudio.load();
             this.backgroundAudio.addEventListener('canplaythrough', async () => {
               try {
-                await this.backgroundAudio!.play();
-                this.backgroundNoiseState.isPlaying = true;
-                console.log('🎵 Background noise started after loading:', this.backgroundNoiseState.selectedNoise!.name);
+                const backgroundPlayed = await MobileAudioHandler.playAudio(this.backgroundAudio!);
+                if (backgroundPlayed) {
+                  this.backgroundNoiseState.isPlaying = true;
+                  console.log('🎵 Background noise started after loading:', this.backgroundNoiseState.selectedNoise!.name);
+                } else {
+                  console.warn('🎵 Background noise failed to start after loading (mobile autoplay policy?)');
+                }
               } catch (playError) {
                 console.error('🎵 Failed to play background noise after loading:', playError);
               }
@@ -200,7 +216,8 @@ export class SimpleAudioMixer {
           console.error('🎵 Background audio state:', {
             readyState: this.backgroundAudio.readyState,
             error: this.backgroundAudio.error,
-            src: this.backgroundAudio.src
+            src: this.backgroundAudio.src,
+            mobileStatus: MobileAudioHandler.getMobileAudioStatus()
           });
           // Continue with meditation even if background fails
         }
@@ -212,6 +229,7 @@ export class SimpleAudioMixer {
       this.updateState();
     } catch (error) {
       console.error('Failed to play audio:', error);
+      console.error('Mobile audio status:', MobileAudioHandler.getMobileAudioStatus());
       throw error;
     }
   }

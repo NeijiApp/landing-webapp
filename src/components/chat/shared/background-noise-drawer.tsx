@@ -12,6 +12,7 @@ import {
   BACKGROUND_NOISE_CONFIGS 
 } from "~/lib/audio/background-noise";
 import { DeploymentAudioLoader } from "~/lib/audio/deployment-audio-loader";
+import { MobileAudioHandler } from "~/lib/audio/mobile-audio-handler";
 import { 
   Volume2, 
   VolumeX, 
@@ -93,10 +94,19 @@ export function BackgroundNoiseDrawer({
 
       const audio = result.audio;
       
-      await audio.play();
-      console.log('🎵 Preview audio playing:', config.name);
-      setPreviewAudio(audio);
-      setIsPreviewing(config.id);
+      // Mark user interaction for mobile audio
+      MobileAudioHandler.markUserInteraction();
+      
+      const played = await MobileAudioHandler.playAudio(audio);
+      if (played) {
+        console.log('🎵 Preview audio playing:', config.name);
+        setPreviewAudio(audio);
+        setIsPreviewing(config.id);
+      } else {
+        console.warn('🎵 Preview audio failed to play (mobile autoplay policy?)');
+        setPreviewAudio(null);
+        setIsPreviewing(null);
+      }
 
       // Auto-stop preview after 5 seconds
       setTimeout(() => {
