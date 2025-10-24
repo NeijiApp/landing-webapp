@@ -258,6 +258,7 @@ export class AudioMixer {
     }
     if (this.backgroundGainNode) {
       const backgroundVolume = this.backgroundNoiseState.selectedNoise?.defaultVolume || 0.3;
+      // Use background volume without amplification
       this.backgroundGainNode.gain.value = backgroundVolume * this.backgroundNoiseState.volume;
     }
     if (this.masterGainNode) {

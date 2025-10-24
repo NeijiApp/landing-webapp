@@ -20,7 +20,7 @@ export const BACKGROUND_NOISE_CONFIGS: BackgroundNoiseConfig[] = [
     description: '3 hours of deep ocean waves for anxiety relief',
     icon: '🌊',
     file: '/background-noise/ocean-waves.mp3',
-    defaultVolume: 0.3, // Will be boosted by 50% in audio mixer
+    defaultVolume: 0.15, // Reduced by 50% from 0.3
     category: 'nature'
   },
   {
@@ -29,7 +29,7 @@ export const BACKGROUND_NOISE_CONFIGS: BackgroundNoiseConfig[] = [
     description: 'Soothing rain with distant thunder for deep sleep',
     icon: '🌧️',
     file: '/background-noise/rain-sounds.mp3',
-    defaultVolume: 0.4, // Will be boosted by 50% in audio mixer
+    defaultVolume: 0.8, // Doubled from 0.4
     category: 'nature'
   },
   {

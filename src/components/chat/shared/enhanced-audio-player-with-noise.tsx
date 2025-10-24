@@ -25,6 +25,7 @@ import {
 import { SimpleAudioMixer } from "~/lib/audio/simple-audio-mixer";
 import type { AudioMixerState } from "~/lib/audio/simple-audio-mixer";
 import { MobileAudioHandler } from "~/lib/audio/mobile-audio-handler";
+import { DeploymentAudioLoader } from "~/lib/audio/deployment-audio-loader";
 
 interface EnhancedAudioPlayerWithNoiseProps {
 	audioUrl: string;
@@ -58,9 +59,54 @@ export function EnhancedAudioPlayerWithNoise({
 			setCurrentTime(state.currentTime);
 			setDuration(state.duration);
 		});
+		
+		// Expose DeploymentAudioLoader to window for debugging
+		(window as any).DeploymentAudioLoader = DeploymentAudioLoader;
+
+		// Expose debug function to window for console access
+		(window as any).debugAudioMixer = () => {
+			if (audioMixerRef.current) {
+				audioMixerRef.current.debugAudioState();
+			} else {
+				console.log('🔍 [DEBUG] No audio mixer instance found');
+			}
+		};
+		
+		// Expose function to clean up orphaned audio elements
+		(window as any).cleanupOrphanedAudio = () => {
+			const allAudio = document.querySelectorAll('audio');
+			console.log('🧹 [CLEANUP] Found', allAudio.length, 'audio elements in DOM');
+			console.log('🧹 [CLEANUP] DeploymentAudioLoader tracking:', (window as any).DeploymentAudioLoader.getActiveAudioCount(), 'audio elements');
+			
+			// Clean up all audios from DeploymentAudioLoader
+			(window as any).DeploymentAudioLoader.cleanupAllAudio();
+			
+			allAudio.forEach((audio, index) => {
+				// Check if this audio is not controlled by our mixer
+				const isMixerAudio = audioMixerRef.current && (
+					audio === (audioMixerRef.current as any).meditationAudio ||
+					audio === (audioMixerRef.current as any).backgroundAudio
+				);
+				
+				if (!isMixerAudio && !audio.paused) {
+					console.log(`🧹 [CLEANUP] Stopping orphaned audio ${index}:`, {
+						paused: audio.paused,
+						src: audio.src?.substring(0, 50),
+						currentTime: audio.currentTime
+					});
+					audio.pause();
+					audio.currentTime = 0;
+					audio.src = '';
+				}
+			});
+			
+			console.log('🧹 [CLEANUP] Cleanup complete');
+		};
 
 		return () => {
 			audioMixerRef.current?.dispose();
+			delete (window as any).debugAudioMixer;
+			delete (window as any).cleanupOrphanedAudio;
 		};
 	}, []);
 
@@ -121,6 +167,8 @@ export function EnhancedAudioPlayerWithNoise({
 			if (isPlaying) {
 				audioMixerRef.current.pause();
 			} else {
+				// Close any open background noise drawer to stop preview audio
+				setShowNoiseDrawer(false);
 				await audioMixerRef.current.play();
 			}
 		} catch (error) {
@@ -184,16 +232,58 @@ export function EnhancedAudioPlayerWithNoise({
 		document.body.removeChild(link);
 	};
 
-	const handleBackgroundNoiseApply = (newState: BackgroundNoiseState) => {
-		console.log('🎵 Background noise state updated:', newState);
-		setBackgroundNoiseState(newState);
-		
-		// Load the selected background noise in the audio mixer
-		if (newState.selectedNoise && audioMixerRef.current) {
-			audioMixerRef.current.loadBackgroundNoise(newState.selectedNoise);
-		} else if (!newState.selectedNoise && audioMixerRef.current) {
-			// Stop background noise if none selected
+	const handleBackgroundNoiseApply = async (newState: BackgroundNoiseState) => {
+		console.log('🎵 [APPLY BG] Starting background noise application (EXCLUSIVE MODE)');
+		console.log('🎵 [APPLY BG] New state:', newState.selectedNoise?.name || 'None');
+
+		// EXCLUSIVE MODE: Ensure only one background noise operation at a time
+		if (!audioMixerRef.current) {
+			console.error('🎵 [APPLY BG] No audio mixer available');
+			return;
+		}
+
+		try {
+			// Step 1: Stop and cleanup current background noise
+			console.log('🎵 [APPLY BG] Step 1: Stopping current background noise');
 			audioMixerRef.current.stopBackgroundNoise();
+
+			// Step 2: Update state first (before loading new audio)
+			console.log('🎵 [APPLY BG] Step 2: Updating state');
+			setBackgroundNoiseState(newState);
+
+			// Step 3: Load new background noise (wait for completion)
+			if (newState.selectedNoise) {
+				console.log('🎵 [APPLY BG] Step 3: Loading new background noise:', newState.selectedNoise.name);
+				await audioMixerRef.current.loadBackgroundNoise(newState.selectedNoise);
+				console.log('🎵 [APPLY BG] Step 3: New background loaded successfully');
+
+				// Step 4: If meditation is playing, start the new background
+				if (isPlaying) {
+					console.log('🎵 [APPLY BG] Step 4: Meditation playing, starting new background');
+
+					// Force restart the background if it's already loaded but not playing
+					if (audioMixerRef.current && audioMixerRef.current.getState) {
+						const state = audioMixerRef.current.getState();
+						console.log('🎵 [APPLY BG] Current mixer state:', state);
+
+						// The background should start automatically in loadBackgroundNoise()
+						// but let's ensure it's playing
+						if (state.backgroundVolume > 0) {
+							console.log('🎵 [APPLY BG] Background volume > 0, should be playing');
+						}
+					}
+				} else {
+					console.log('🎵 [APPLY BG] Meditation not playing, background loaded but not started');
+				}
+			} else {
+				console.log('🎵 [APPLY BG] No background noise selected, state cleared');
+			}
+
+			console.log('🎵 [APPLY BG] Background noise application completed successfully');
+		} catch (error) {
+			console.error('🎵 [APPLY BG] Error during background noise application:', error);
+			// Reset state on error
+			setBackgroundNoiseState(DEFAULT_BACKGROUND_NOISE_STATE);
 		}
 	};
 

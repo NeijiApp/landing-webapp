@@ -245,39 +245,343 @@
   - Research optimal UX patterns
   - Refine website copy and messaging
 
-- [ ] **Protected: Conversation Memory & Context**
-  - Store user conversation history in database (Supabase)
-  - Retrieve context when user returns (personalized greetings, continuity)
-  - Remember user preferences (favorite duration, voice, goals)
-  - Track meditation history for personalized recommendations
-  - Schema: conversations table with user_id, messages, meditation_params, timestamp
-  - File: `src/lib/conversation-history.ts` (already exists, needs enhancement)
-  - Related: `src/server/db/schema.ts` (add meditation_history table)
+- [ ] **RESTRUCTURE: Protected Area - Tabs & Navigation**
+  
+  **New Structure:**
+  ```
+  /protected/
+    ├── dashboard/     [NEW - Main view]
+    ├── profile/       [REWORK - Conversational onboarding]
+    └── chat/          [Existing]
+  ```
 
-- [ ] **Protected: Dashboard with Meditation History**
-  - List all previous meditation sessions with metadata:
-    - Date & time generated
-    - Duration, goal, voice, guidance level
-    - Play count (if tracking)
-    - Tags/categories
-  - Actions per meditation:
-    - Play/replay in-app
-    - Download MP3
-    - Favorite/bookmark
-    - Delete
-    - Share (future)
-  - Filters & search:
-    - By date range
-    - By goal (morning, focus, calm, sleep)
-    - By duration
-  - Stats/insights:
-    - Total meditations generated
-    - Most used goals
-    - Streak tracking (future gamification)
-  - Files: 
-    - `src/app/protected/dashboard/page.tsx` (new)
-    - `src/app/api/meditations/route.ts` (new - fetch user's meditations)
-  - Database: Create `meditation_sessions` table with user_id, audio_url, params, created_at
+  **🎯 Objectif:** Séparer clairement "utilisation" (dashboard) et "personnalisation" (profile)
+
+---
+
+- [ ] **📊 TAB 1: DASHBOARD (Tableau de bord) - REWORK COMPLET**
+  
+  **Vision:** Vue d'ensemble de l'expérience utilisateur Neiji
+  
+  **Sections du Dashboard:**
+  
+  **1️⃣ Section: Méditations Générées**
+  - [ ] **Liste des méditations avec player intégré**
+    - Grid/List view des méditations générées
+    - Card par méditation avec:
+      - Titre généré automatiquement (ex: "Calme du soir - 10 min")
+      - Date de création (relative: "Il y a 2 jours")
+      - Durée, goal (🌅🎯😌🌙), voice, guidance
+      - Thumbnail/visual (couleur selon goal?)
+      - Mini player intégré (play/pause inline)
+    - Click sur card → Ouvre player fullscreen avec:
+      - Waveform audio visualisation
+      - Contrôles (play/pause, timeline, volume)
+      - Background noise selector
+      - Download button
+      - Favorite/Bookmark toggle
+      - Delete (avec confirmation)
+      - Share (future)
+  
+  - [ ] **Filters & Sort**
+    - Filter par goal (all/morning/focus/calm/sleep)
+    - Filter par durée (3min/5min/10min/15min/20min)
+    - Filter par date (today/this week/this month/all)
+    - Sort: Recent first / Oldest first / Most played / Favorites
+  
+  - [ ] **Empty State**
+    - Si aucune méditation générée:
+      - Illustration + "Crée ta première méditation personnalisée"
+      - CTA vers /protected/chat
+  
+  **2️⃣ Section: Historique des Conversations**
+  - [ ] **Timeline des discussions avec Neiji**
+    - Liste chronologique des conversations
+    - Groupées par date (Aujourd'hui / Hier / Cette semaine / Plus ancien)
+    - Preview de chaque conversation:
+      - Premier message de l'user
+      - Timestamp
+      - Nombre de messages dans la conversation
+      - "Continuer la conversation" → Ouvre /protected/chat avec contexte
+    - Click → Expand pour voir tous les messages
+  
+  - [ ] **Search dans l'historique**
+    - Recherche par mots-clés dans conversations
+    - Highlight des résultats
+  
+  - [ ] **Actions**
+    - Delete conversation (avec confirmation)
+    - Export conversation (future)
+  
+  **3️⃣ Section: Stats & Insights** (Future - Gamification)
+  - [ ] **Widgets de statistiques**
+    - Total méditations générées (nombre + équivalent en temps)
+    - Streak actuel (jours consécutifs)
+    - Goal le plus utilisé (chart/pie)
+    - Temps total de méditation
+    - Flowers dépensés/restants (lié au business model)
+  
+  - [ ] **Achievements/Badges** (Future)
+    - "Première méditation" 🎉
+    - "7 jours de suite" 🔥
+    - "Zen Master" (50+ méditations) 🧘‍♀️
+  
+  **4️⃣ Section: Quick Actions**
+  - [ ] **Raccourcis**
+    - "Générer une méditation" → /protected/chat
+    - "Rejouer ma dernière méditation"
+    - "Continuer ma conversation"
+  
+  **🎨 UI/UX Design:**
+  - Layout: Sidebar navigation (Dashboard / Profile / Chat)
+  - Responsive: Mobile → Bottom nav / Desktop → Left sidebar
+  - Theme: Cohérent avec branding Neiji (orange, calme, aéré)
+  
+  **📦 Files to create/modify:**
+  - `src/app/protected/dashboard/page.tsx` (main dashboard)
+  - `src/components/dashboard/MeditationsList.tsx`
+  - `src/components/dashboard/MeditationCard.tsx`
+  - `src/components/dashboard/AudioPlayer.tsx` (fullscreen player)
+  - `src/components/dashboard/ConversationHistory.tsx`
+  - `src/components/dashboard/StatsWidgets.tsx`
+  - `src/app/api/meditations/route.ts` (fetch user's meditations)
+  - `src/app/api/conversations/route.ts` (fetch conversation history)
+  
+  **🗄️ Database Schema:**
+  ```sql
+  -- Table: meditation_sessions
+  CREATE TABLE meditation_sessions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    audio_url TEXT NOT NULL,
+    title TEXT, -- Auto-generated or user-edited
+    duration_seconds INTEGER NOT NULL,
+    goal VARCHAR(50) NOT NULL, -- 'morning', 'focus', 'calm', 'sleep'
+    voice_gender VARCHAR(10), -- 'male', 'female'
+    guidance_level VARCHAR(20), -- 'beginner', 'confirmed', 'expert'
+    background_sound VARCHAR(50), -- 'ocean', 'rain', 'music', 'relax', 'none'
+    flowers_spent INTEGER, -- Cost in flowers
+    play_count INTEGER DEFAULT 0,
+    is_favorite BOOLEAN DEFAULT false,
+    conversation_id UUID REFERENCES conversations(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  );
+  
+  -- Table: conversations
+  CREATE TABLE conversations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    messages JSONB NOT NULL, -- Array of {role, content, timestamp}
+    last_message_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  );
+  
+  -- Indexes
+  CREATE INDEX idx_meditation_sessions_user ON meditation_sessions(user_id, created_at DESC);
+  CREATE INDEX idx_conversations_user ON conversations(user_id, last_message_at DESC);
+  ```
+
+---
+
+- [ ] **👤 TAB 2: PROFILE - CONVERSATIONAL ONBOARDING (5 Questions)**
+  
+  **Vision:** Remplacer le questionnaire statique par une conversation naturelle avec Neiji
+  
+  **🎯 Objectif:** 
+  - Collecter 5 informations clés pour personnaliser le system prompt
+  - Rendre ça agréable et conversationnel (pas un formulaire!)
+  - Neiji réagit aux réponses avec empathie via ChatGPT
+  - Les réponses alimentent la personnalisation des méditations
+  
+  **🗣️ Format: Conversation Progressive (1 question à la fois)**
+  
+  **Question 1: Objectif Principal**
+  > **Neiji:** "Salut ! 🌸 J'aimerais mieux te connaître pour créer des méditations vraiment adaptées à toi. Pour commencer : qu'est-ce qui t'amène ici ? Qu'est-ce que tu cherches à améliorer dans ta vie ?"
+  
+  **Options (boutons suggérés + champ libre):**
+  - 😰 Gérer mon stress/anxiété
+  - 😴 Mieux dormir
+  - 🎯 Améliorer ma concentration
+  - 🧘 Développer une routine de méditation
+  - ✍️ Autre (champ libre)
+  
+  **User répond:** "Gérer mon stress"
+  
+  **Neiji réagit (via ChatGPT):**
+  > "Je comprends, le stress peut vraiment impacter le quotidien. Tu gères ça depuis longtemps ?"
+  
+  *[L'user peut répondre librement, Neiji écoute et rebondit naturellement]*
+  
+  ---
+  
+  **Question 2: Niveau d'Expérience**
+  > **Neiji:** "Est-ce que tu as déjà médité avant ? Ça m'aidera à ajuster le niveau de guidance."
+  
+  **Options:**
+  - 🌱 Débutant complet (jamais essayé ou très peu)
+  - 🌿 J'ai déjà essayé quelques fois
+  - 🌳 Je médite régulièrement (plusieurs fois par mois)
+  - 🧘‍♀️ Pratique avancée (quotidienne ou presque)
+  
+  **Neiji réagit selon la réponse:**
+  - Si débutant: "Parfait ! Je vais te guider pas à pas, sans précipitation."
+  - Si avancé: "Super ! Je peux te proposer des méditations plus silencieuses si tu veux."
+  
+  ---
+  
+  **Question 3: Moments de la Journée**
+  > **Neiji:** "À quel moment de la journée tu imagines méditer le plus souvent ?"
+  
+  **Options (multi-select possible):**
+  - 🌅 Le matin au réveil
+  - ☕️ Pendant une pause dans la journée
+  - 🌆 En fin d'après-midi
+  - 🌙 Le soir avant de dormir
+  - 🤷 Ça dépend des jours
+  
+  **Neiji réagit:**
+  > "Le soir c'est un super moment pour décompresser. Je te proposerai des méditations adaptées pour ça."
+  
+  ---
+  
+  **Question 4: Durée Préférée**
+  > **Neiji:** "Combien de temps tu peux te consacrer pour une méditation, en général ?"
+  
+  **Options:**
+  - ⚡️ Courtes (3-5 min) - Je suis souvent pressé
+  - ⏱️ Moyennes (7-10 min) - J'aime prendre mon temps
+  - 🕰️ Longues (15-20 min) - Je veux vraiment m'immerger
+  - 🎯 Ça varie selon mon humeur
+  
+  **Neiji réagit:**
+  > "5 minutes c'est déjà super ! Même court, ça peut faire une vraie différence."
+  
+  ---
+  
+  **Question 5: Voix & Ambiance Préférées**
+  > **Neiji:** "Dernière question : qu'est-ce qui t'aide le plus à te détendre ?"
+  
+  **Options:**
+  - 🎙️ Une voix douce qui me guide
+  - 🌊 Des sons de nature (océan, pluie...)
+  - 🎵 De la musique apaisante
+  - 🤫 Du silence avec peu de guidage
+  - 🎨 Un mix de tout ça
+  
+  **User répond:** "Voix douce + sons de nature"
+  
+  **Neiji conclut:**
+  > "Parfait ! J'ai tout noté. Maintenant je pourrai te créer des méditations qui te ressemblent vraiment. 🌸 Prêt à essayer ?"
+  
+  **[CTA: "Créer ma première méditation"]**
+  
+  ---
+  
+  **💾 Stockage des Réponses → System Prompt Personnalisé**
+  
+  **Database Schema:**
+  ```sql
+  CREATE TABLE user_profiles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+    
+    -- 5 Questions
+    main_goal VARCHAR(100), -- 'stress', 'sleep', 'focus', 'routine', 'other'
+    main_goal_details TEXT, -- Free text response
+    experience_level VARCHAR(50), -- 'beginner', 'intermediate', 'regular', 'advanced'
+    preferred_times JSONB, -- ['morning', 'break', 'evening', 'night', 'varies']
+    preferred_duration VARCHAR(20), -- 'short', 'medium', 'long', 'varies'
+    preferred_ambiance JSONB, -- ['voice', 'nature', 'music', 'silence', 'mix']
+    
+    -- Metadata
+    onboarding_completed BOOLEAN DEFAULT false,
+    onboarding_completed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  );
+  ```
+  
+  **Génération du System Prompt Personnalisé:**
+  ```typescript
+  function generatePersonalizedSystemPrompt(profile: UserProfile): string {
+    let prompt = `You are Neiji, a mindfulness companion for ${profile.user_name || 'this user'}.
+  
+  USER CONTEXT:
+  - Main goal: ${profile.main_goal} - ${profile.main_goal_details}
+  - Experience level: ${profile.experience_level}
+  - Prefers meditating: ${profile.preferred_times.join(', ')}
+  - Typical duration: ${profile.preferred_duration} sessions
+  - Ambiance preference: ${profile.preferred_ambiance.join(' + ')}
+  
+  INSTRUCTIONS:
+  - Adapt your guidance level to their experience (${profile.experience_level})
+  - When suggesting meditations, prioritize their main goal (${profile.main_goal})
+  - Suggest durations that fit their preference (${profile.preferred_duration})
+  - Be warm, empathetic, and use their name occasionally
+  - Remember their previous conversations and build continuity
+  `;
+    
+    return prompt;
+  }
+  ```
+  
+  **🎨 UI/UX Implementation:**
+  - [ ] **Conversational Interface**
+    - Chat-like bubbles (Neiji's messages + user's responses)
+    - 1 question at a time (progressive disclosure)
+    - Neiji "typing..." animation avant chaque réponse
+    - Boutons de réponse rapide + option champ libre
+    - Smooth scroll entre questions
+  
+  - [ ] **ChatGPT Integration for Reactions**
+    - API call to `/api/profile/react` (uses ChatGPT)
+    - Neiji génère des réponses empathiques selon l'input user
+    - Garde le contexte de la conversation (history)
+    - Ton: Chaleureux, encourageant, jamais condescendant
+  
+  - [ ] **Progress Indicator**
+    - "Question 1/5" en haut
+    - Progress bar visuelle
+    - Option "Skip for now" si user veut essayer direct
+  
+  - [ ] **Édition Ultérieure**
+    - User peut revenir modifier ses réponses
+    - "Modifier mes préférences" dans le profile
+    - Re-déclenche le flow conversationnel
+  
+  **📦 Files to create/modify:**
+  - `src/app/protected/profile/page.tsx` (conversational onboarding)
+  - `src/components/profile/ConversationalOnboarding.tsx`
+  - `src/components/profile/QuestionStep.tsx`
+  - `src/app/api/profile/react/route.ts` (ChatGPT reactions)
+  - `src/app/api/profile/save/route.ts` (save responses)
+  - `src/lib/profile/generate-system-prompt.ts`
+  - `src/server/db/schema.ts` (add user_profiles table)
+  
+  **🔄 Integration avec Product Strategy:**
+  - [ ] **Lien avec UXR Insights**
+    - Les questions sont basées sur les learnings des interviews
+    - Valider les questions dans les prochains tests users
+    - Adapter selon feedback (trop intrusif? pas assez?)
+  
+  - [ ] **Alignement avec Business Model**
+    - Profil complété = unlock bonus flowers (gamification)
+    - Meilleure personnalisation = plus de valeur perçue = plus de conversions
+  
+  - [ ] **KPIs à tracker**
+    - % users qui complètent le profil
+    - Temps moyen pour compléter
+    - Abandon rate (à quelle question?)
+    - Impact sur rétention (users avec profil vs sans)
+
+---
+
+- [ ] **🧭 Navigation & Transitions entre Tabs**
+  - [ ] Sidebar navigation (desktop) / Bottom nav (mobile)
+  - [ ] Active state visuel clair
+  - [ ] Smooth transitions entre pages
+  - [ ] Breadcrumbs si nécessaire
+  - [ ] "Retour au dashboard" depuis n'importe où
 
 - [ ] Protected: Feedback submission capability
   - Add feedback form UI and server API endpoint

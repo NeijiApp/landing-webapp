@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import type { 
@@ -48,6 +48,11 @@ export function BackgroundNoiseDrawer({
   const [state, setState] = useState<BackgroundNoiseState>(currentState);
   const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
   const [isPreviewing, setIsPreviewing] = useState<string | null>(null);
+  const [previewProgress, setPreviewProgress] = useState(0);
+  const [isFadingOut, setIsFadingOut] = useState(false);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const animationCleanupRef = useRef<(() => void) | null>(null);
 
   // Update state when currentState changes
   useEffect(() => {
@@ -63,18 +68,41 @@ export function BackgroundNoiseDrawer({
 
 
   const handlePreview = async (config: BackgroundNoiseConfig) => {
-    // Stop current preview
+    // Prevent concurrent preview operations
+    if (isPreviewLoading) {
+      console.log('🎵 Preview operation already in progress, ignoring click');
+      return;
+    }
+    
+    // Stop current preview completely
     if (previewAudio) {
       previewAudio.pause();
       previewAudio.currentTime = 0;
       setPreviewAudio(null);
     }
+    
+    // Clean up any running animations
+    if (animationCleanupRef.current) {
+      animationCleanupRef.current();
+      animationCleanupRef.current = null;
+    }
+    
+    // Clear any pending timeouts
+    if (previewTimeoutRef.current) {
+      clearTimeout(previewTimeoutRef.current);
+      previewTimeoutRef.current = null;
+    }
 
+    // If clicking the same preview button, toggle it off
     if (isPreviewing === config.id) {
       setIsPreviewing(null);
+      setPreviewProgress(0);
+      setIsFadingOut(false);
       return;
     }
 
+    setIsPreviewLoading(true);
+    
     try {
       console.log('🎵 Starting preview for:', config.name, 'File:', config.file);
       
@@ -89,6 +117,9 @@ export function BackgroundNoiseDrawer({
         console.error('🎵 Error details:', result.details);
         setIsPreviewing(null);
         setPreviewAudio(null);
+        setPreviewProgress(0);
+        setIsFadingOut(false);
+        setIsPreviewLoading(false);
         return;
       }
 
@@ -102,43 +133,160 @@ export function BackgroundNoiseDrawer({
         console.log('🎵 Preview audio playing:', config.name);
         setPreviewAudio(audio);
         setIsPreviewing(config.id);
+        setPreviewProgress(0);
+        setIsFadingOut(false);
+        
+        // Start progress animation with smooth timing
+        const startTime = Date.now();
+        const previewDuration = 5000; // 5 seconds of preview
+        const fadeOutDuration = 2000; // 2 seconds of fade out
+        const totalDuration = previewDuration + fadeOutDuration; // 7 seconds total
+        
+        let animationId: number;
+        let intervalId: NodeJS.Timeout;
+        
+        const updateProgress = () => {
+          const elapsed = Date.now() - startTime;
+          
+          if (elapsed < previewDuration) {
+            // First 5 seconds: smooth progress animation
+            const previewProgress = Math.min(elapsed / previewDuration, 1);
+            setPreviewProgress(previewProgress);
+            setIsFadingOut(false);
+            
+            // Debug: Log progress every 500ms
+            if (Math.floor(elapsed / 500) !== Math.floor((elapsed - 16) / 500)) {
+              console.log(`🎵 Preview progress: ${Math.round(previewProgress * 100)}% (${elapsed}ms)`);
+            }
+            
+            // Continue animation
+            animationId = requestAnimationFrame(updateProgress);
+          } else if (elapsed < totalDuration) {
+            // Next 2 seconds: fade out (keep circle at 100% but fade audio)
+            setPreviewProgress(1);
+            setIsFadingOut(true);
+            
+            // Fade out the audio volume
+            const fadeOutProgress = (elapsed - previewDuration) / fadeOutDuration;
+            const volume = Math.max(0, 1 - fadeOutProgress);
+            audio.volume = volume * config.defaultVolume * 0.5;
+            
+            // Continue animation
+            animationId = requestAnimationFrame(updateProgress);
+          } else {
+            // Animation complete - stop and reset icon state
+            setPreviewProgress(0);
+            setIsFadingOut(false);
+            setIsPreviewing(null);
+            return;
+          }
+        };
+        
+        // Start the animation with both requestAnimationFrame and setInterval for reliability
+        animationId = requestAnimationFrame(updateProgress);
+        
+        // Backup interval for smooth updates (every 16ms ≈ 60fps)
+        intervalId = setInterval(() => {
+          const elapsed = Date.now() - startTime;
+          if (elapsed < previewDuration) {
+            const previewProgress = Math.min(elapsed / previewDuration, 1);
+            setPreviewProgress(previewProgress);
+          } else if (elapsed < totalDuration) {
+            setPreviewProgress(1);
+            const fadeOutProgress = (elapsed - previewDuration) / fadeOutDuration;
+            const volume = Math.max(0, 1 - fadeOutProgress);
+            audio.volume = volume * config.defaultVolume * 0.5;
+          } else {
+            clearInterval(intervalId);
+          }
+        }, 16);
+        
+        // Store cleanup function in ref for later use
+        const cleanup = () => {
+          if (animationId) {
+            cancelAnimationFrame(animationId);
+          }
+          if (intervalId) {
+            clearInterval(intervalId);
+          }
+        };
+        
+        animationCleanupRef.current = cleanup;
+        setIsPreviewLoading(false);
       } else {
         console.warn('🎵 Preview audio failed to play (mobile autoplay policy?)');
         setPreviewAudio(null);
         setIsPreviewing(null);
+        setPreviewProgress(0);
+        setIsPreviewLoading(false);
       }
 
-      // Auto-stop preview after 5 seconds
-      setTimeout(() => {
-        if (audio === previewAudio) {
-          audio.pause();
-          audio.currentTime = 0;
-          setPreviewAudio(null);
-          setIsPreviewing(null);
+      // Auto-stop preview after 7 seconds (5s preview + 2s fade out)
+      previewTimeoutRef.current = setTimeout(() => {
+        audio.pause();
+        audio.currentTime = 0;
+        setPreviewAudio(null);
+        setIsPreviewing(null);
+        setPreviewProgress(0);
+        setIsFadingOut(false);
+        
+        // Clean up animations
+        if (animationCleanupRef.current) {
+          animationCleanupRef.current();
+          animationCleanupRef.current = null;
         }
-      }, 5000);
+        
+        console.log('🎵 Preview auto-stopped after 7 seconds');
+      }, 7000);
     } catch (error) {
       console.error('🎵 Failed to preview audio:', error);
       console.error('🎵 Config:', config);
       setIsPreviewing(null);
       setPreviewAudio(null);
+      setPreviewProgress(0);
+      setIsFadingOut(false);
+      setIsPreviewLoading(false);
     }
+  };
+
+  const stopPreviewAudio = () => {
+    // Cancel any running animation
+    if (animationCleanupRef.current) {
+      animationCleanupRef.current();
+      animationCleanupRef.current = null;
+    }
+    
+    // Clear any pending timeouts
+    if (previewTimeoutRef.current) {
+      clearTimeout(previewTimeoutRef.current);
+      previewTimeoutRef.current = null;
+    }
+    
+    if (previewAudio) {
+      previewAudio.pause();
+      previewAudio.currentTime = 0;
+      setPreviewAudio(null);
+    }
+    
+    setIsPreviewing(null);
+    setPreviewProgress(0);
+    setIsFadingOut(false);
+    setIsPreviewLoading(false);
   };
 
   const handleApply = () => {
     console.log('🎵 Applying background noise:', state.selectedNoise?.name || 'None');
+    
+    // Stop any preview audio before applying
+    stopPreviewAudio();
+    
     onApply(state);
     onClose();
   };
 
   const handleClear = () => {
     // Stop any preview audio
-    if (previewAudio) {
-      previewAudio.pause();
-      previewAudio.currentTime = 0;
-      setPreviewAudio(null);
-    }
-    setIsPreviewing(null);
+    stopPreviewAudio();
     
     setState(prev => ({
       ...prev,
@@ -149,13 +297,26 @@ export function BackgroundNoiseDrawer({
 
   // Cleanup preview audio when drawer closes
   useEffect(() => {
-    if (!isOpen && previewAudio) {
-      previewAudio.pause();
-      previewAudio.currentTime = 0;
-      setPreviewAudio(null);
-      setIsPreviewing(null);
+    if (!isOpen) {
+      stopPreviewAudio();
     }
-  }, [isOpen, previewAudio]);
+  }, [isOpen]);
+
+  // Cleanup preview audio when component unmounts
+  useEffect(() => {
+    return () => {
+      if (previewAudio) {
+        previewAudio.pause();
+        previewAudio.currentTime = 0;
+      }
+    };
+  }, [previewAudio]);
+
+  // Global cleanup - stop all preview audio when component mounts
+  useEffect(() => {
+    // Stop any existing preview audio when component mounts
+    stopPreviewAudio();
+  }, []);
 
   if (!isOpen) return null;
 
@@ -240,12 +401,12 @@ export function BackgroundNoiseDrawer({
                       </div>
                     </div>
 
-                    {/* Preview Button */}
+                    {/* Preview Button with Circular Progress */}
                     <Button
                       size="sm"
                       variant="ghost"
                       className={cn(
-                        "absolute top-2 right-2 h-6 w-6 p-0 rounded-full transition-all",
+                        "absolute top-2 right-2 h-6 w-6 p-0 rounded-full transition-all relative",
                         isPreviewingThis ? "text-orange-600 bg-orange-100" : "text-gray-400 hover:bg-gray-100"
                       )}
                       onClick={(e) => {
@@ -254,9 +415,42 @@ export function BackgroundNoiseDrawer({
                       }}
                     >
                       {isPreviewingThis ? (
-                        <Pause className="size-3" />
+                        <div className="relative w-full h-full flex items-center justify-center">
+                          {/* Circular Progress Background */}
+                          <svg className="w-5 h-5 absolute" viewBox="0 0 20 20">
+                            <circle
+                              cx="10"
+                              cy="10"
+                              r="8"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              fill="none"
+                              className="opacity-30"
+                            />
+                            <circle
+                              cx="10"
+                              cy="10"
+                              r="8"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              fill="none"
+                              strokeDasharray={`${2 * Math.PI * 8}`}
+                              strokeDashoffset={`${2 * Math.PI * 8 * (1 - previewProgress)}`}
+                              strokeLinecap="round"
+                              className={cn(
+                                isFadingOut && "opacity-60"
+                              )}
+                              style={{
+                                transform: 'rotate(-90deg)',
+                                transformOrigin: '10px 10px',
+                                transition: 'none' // Disable CSS transitions for smooth JS animation
+                              }}
+                            />
+                          </svg>
+                          <Pause className="size-2.5 relative z-10" />
+                        </div>
                       ) : (
-                        <Play className="size-3" />
+                        <Play className="size-2.5" />
                       )}
                     </Button>
 
