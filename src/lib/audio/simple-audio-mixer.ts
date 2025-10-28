@@ -53,7 +53,7 @@ export class SimpleAudioMixer {
       const result = await DeploymentAudioLoader.loadAudio(audioUrl, {
         loop: false,
         preload: 'auto',
-        volume: 0.8 // Reduce meditation guidance volume by 20%
+        volume: 0.56 // Reduce meditation guidance volume by 44% (from original)
       });
 
       if (!result.success || !result.audio) {
@@ -100,10 +100,10 @@ export class SimpleAudioMixer {
   }
 
   /**
-   * Load background noise audio (EXCLUSIVE MODE)
+   * Load background noise audio (EXCLUSIVE MODE - NO AUTO START)
    */
   async loadBackgroundNoise(config: BackgroundNoiseConfig): Promise<void> {
-    console.log('🎵 [LOAD BG] Loading background noise (EXCLUSIVE MODE):', config.name);
+    console.log('🎵 [LOAD BG] Loading background noise (EXCLUSIVE MODE - NO AUTO START):', config.name);
 
     // EXCLUSIVE: Ensure only one background loading operation at a time
     if (this.backgroundNoiseState.selectedNoise && this.backgroundNoiseState.selectedNoise.id !== config.id) {
@@ -153,10 +153,10 @@ export class SimpleAudioMixer {
       console.log('🎵 [LOAD BG] Background audio assigned, ID:', (this.backgroundAudio as any).__bgId);
 
       this.backgroundNoiseState.selectedNoise = config;
-      this.backgroundNoiseState.isPlaying = false; // Don't auto-play, wait for explicit start
+      this.backgroundNoiseState.isPlaying = false; // EXPLICIT: Never auto-start during background change
       this.updateBackgroundVolume();
 
-      console.log('🎵 [LOAD BG] Background noise loaded successfully:', config.name);
+      console.log('🎵 [LOAD BG] Background noise loaded successfully (but not started):', config.name);
       console.log('🎵 [LOAD BG] Background audio state:', {
         paused: this.backgroundAudio.paused,
         loop: this.backgroundAudio.loop,
@@ -164,37 +164,11 @@ export class SimpleAudioMixer {
         src: this.backgroundAudio.src.substring(0, 50)
       });
 
-      // EXCLUSIVE: Only start if meditation is actively playing (not just loaded)
-      const shouldAutoStart = this.isPlaying && this.meditationAudio && !this.meditationAudio.paused;
+      // CRITICAL FIX: NO AUTO-START when changing background noise
+      // The background will be started only when explicitly requested
+      console.log('🎵 [LOAD BG] Background loaded but NOT started (exclusive mode)');
+      console.log('🎵 [LOAD BG] Background will start only when explicitly requested via startBackgroundNoise()');
 
-      if (shouldAutoStart) {
-        console.log('🎵 [LOAD BG] Meditation actively playing, starting background noise immediately');
-        try {
-          const backgroundPlayed = await MobileAudioHandler.playAudio(this.backgroundAudio);
-          if (backgroundPlayed) {
-            this.backgroundNoiseState.isPlaying = true;
-            console.log('🎵 [LOAD BG] Background noise started successfully:', config.name);
-            console.log('🎵 [LOAD BG] Final background state:', {
-              paused: this.backgroundAudio.paused,
-              currentTime: this.backgroundAudio.currentTime,
-              isPlaying: this.backgroundNoiseState.isPlaying
-            });
-          } else {
-            console.warn('🎵 [LOAD BG] Background noise failed to start (mobile autoplay policy)');
-            this.backgroundNoiseState.isPlaying = false;
-          }
-        } catch (bgError) {
-          console.error('🎵 [LOAD BG] Exception starting background noise:', bgError);
-          this.backgroundNoiseState.isPlaying = false;
-        }
-      } else {
-        console.log('🎵 [LOAD BG] Background loaded but not started (meditation not actively playing)');
-        console.log('🎵 [LOAD BG] Conditions:', {
-          isPlaying: this.isPlaying,
-          meditationExists: !!this.meditationAudio,
-          meditationPaused: this.meditationAudio?.paused
-        });
-      }
     } catch (error) {
       console.error('🎵 [LOAD BG] Failed to create background audio:', error);
       console.error('🎵 [LOAD BG] Config:', config);
@@ -224,15 +198,10 @@ export class SimpleAudioMixer {
         this.isPlaying = true;
         console.log('🎵 Meditation audio playing');
         
-        // If there's background noise, play it too
-        if (this.backgroundAudio && this.backgroundNoiseState.selectedNoise) {
-          const backgroundPlayed = await MobileAudioHandler.playAudio(this.backgroundAudio);
-          if (backgroundPlayed) {
-            this.backgroundNoiseState.isPlaying = true;
-            console.log('🎵 Background noise playing:', this.backgroundNoiseState.selectedNoise.name);
-          } else {
-            console.warn('🎵 Background noise failed to play (mobile autoplay policy?)');
-          }
+        // If there's background noise selected, start it
+        if (this.backgroundNoiseState.selectedNoise) {
+          console.log('🎵 Background noise selected, starting:', this.backgroundNoiseState.selectedNoise.name);
+          await this.startBackgroundNoise();
         }
         
         this.updateState();
@@ -256,11 +225,15 @@ export class SimpleAudioMixer {
     console.log('🎵 [PAUSE] Meditation audio exists:', !!this.meditationAudio);
     console.log('🎵 [PAUSE] Background audio exists:', !!this.backgroundAudio);
     console.log('🎵 [PAUSE] Background audio ID:', this.backgroundAudio ? (this.backgroundAudio as any).__bgId : 'N/A');
-    
+
+    // Clean up any orphaned audio elements first
+    this.cleanupOrphanedAudioElements();
+
     if (this.meditationAudio) {
       this.meditationAudio.pause();
       console.log('🎵 [PAUSE] ✅ Meditation audio paused');
     }
+
     if (this.backgroundAudio) {
       console.log('🎵 [PAUSE] Background audio BEFORE pause:', {
         id: (this.backgroundAudio as any).__bgId,
@@ -269,7 +242,7 @@ export class SimpleAudioMixer {
         volume: this.backgroundAudio.volume,
         src: this.backgroundAudio.src.substring(0, 50)
       });
-      
+
       try {
         this.backgroundAudio.pause();
         console.log('🎵 [PAUSE] Background audio AFTER pause:', {
@@ -277,10 +250,13 @@ export class SimpleAudioMixer {
           paused: this.backgroundAudio.paused,
           currentTime: this.backgroundAudio.currentTime
         });
-        
+
         // Verify it's actually paused
         if (!this.backgroundAudio.paused) {
           console.error('🎵 [PAUSE] ❌ ERROR: Background audio.pause() called but audio is NOT paused!');
+          // Force pause by setting currentTime and reloading
+          this.backgroundAudio.currentTime = 0;
+          this.backgroundAudio.load();
         } else {
           console.log('🎵 [PAUSE] ✅ Background audio successfully paused');
         }
@@ -290,7 +266,7 @@ export class SimpleAudioMixer {
     } else {
       console.log('🎵 [PAUSE] ⚠️ No background audio to pause');
     }
-    
+
     this.backgroundNoiseState.isPlaying = false;
     this.isPlaying = false;
     this.updateState();
@@ -342,6 +318,9 @@ export class SimpleAudioMixer {
       }
     }
 
+    // Also stop any other background noise that might be playing
+    this.stopAllOtherBackgrounds();
+
     this.backgroundNoiseState.selectedNoise = null;
     this.backgroundNoiseState.isPlaying = false;
     this.updateState();
@@ -349,10 +328,44 @@ export class SimpleAudioMixer {
   }
 
   /**
+   * Force stop all background noise (public method for debugging)
+   */
+  forceStopAllBackgroundNoise(): void {
+    console.log('🛑 [FORCE STOP] Force stopping all background noise');
+
+    // Stop current background
+    if (this.backgroundAudio) {
+      try {
+        const audioToClean = this.backgroundAudio;
+        this.backgroundAudio = null;
+        DeploymentAudioLoader.removeAudio(audioToClean);
+      } catch (error) {
+        console.error('🛑 [FORCE STOP] Error stopping current background:', error);
+      }
+    }
+
+    // Stop all other backgrounds
+    this.stopAllOtherBackgrounds();
+
+    // Reset state
+    this.backgroundNoiseState.selectedNoise = null;
+    this.backgroundNoiseState.isPlaying = false;
+    this.updateState();
+
+    console.log('🛑 [FORCE STOP] All background noise stopped');
+  }
+
+  /**
    * Start background noise if loaded but not playing
    */
   async startBackgroundNoise(): Promise<void> {
     console.log('🎵 [START BG] Starting background noise');
+
+    // CRITICAL: Clean up any orphaned audio elements first
+    this.cleanupOrphanedAudioElements();
+
+    // Also stop any other background that might be playing
+    this.stopAllOtherBackgrounds();
 
     if (!this.backgroundAudio) {
       console.warn('🎵 [START BG] No background audio loaded');
@@ -376,18 +389,121 @@ export class SimpleAudioMixer {
     }
 
     console.log('🎵 [START BG] Starting background noise:', this.backgroundNoiseState.selectedNoise.name);
+    console.log('🎵 [START BG] Background audio state before start:', {
+      paused: this.backgroundAudio.paused,
+      currentTime: this.backgroundAudio.currentTime,
+      volume: this.backgroundAudio.volume,
+      src: this.backgroundAudio.src.substring(0, 50)
+    });
 
     try {
       const backgroundPlayed = await MobileAudioHandler.playAudio(this.backgroundAudio);
       if (backgroundPlayed) {
         this.backgroundNoiseState.isPlaying = true;
         console.log('🎵 [START BG] Background noise started successfully');
+        console.log('🎵 [START BG] Background audio state after start:', {
+          paused: this.backgroundAudio.paused,
+          currentTime: this.backgroundAudio.currentTime,
+          isPlaying: this.backgroundNoiseState.isPlaying
+        });
         this.updateState();
       } else {
         console.warn('🎵 [START BG] Background noise failed to start (mobile autoplay policy)');
+        this.backgroundNoiseState.isPlaying = false;
       }
     } catch (error) {
       console.error('🎵 [START BG] Error starting background noise:', error);
+      this.backgroundNoiseState.isPlaying = false;
+    }
+  }
+
+  /**
+   * Clean up any orphaned audio elements that might be playing
+   */
+  private cleanupOrphanedAudioElements(): void {
+    try {
+      // Check for any audio elements in the DOM that are not our controlled ones
+      const allAudioElements = document.querySelectorAll('audio');
+
+      allAudioElements.forEach((audio, index) => {
+        // Check if this audio is controlled by our mixer
+        const isOurAudio = audio === this.meditationAudio || audio === this.backgroundAudio;
+
+        if (!isOurAudio && !audio.paused) {
+          console.log('🧹 [CLEANUP] Found orphaned playing audio:', {
+            index,
+            src: audio.src?.substring(0, 50),
+            currentTime: audio.currentTime,
+            paused: audio.paused
+          });
+
+          // Stop orphaned audio
+          try {
+            audio.pause();
+            audio.currentTime = 0;
+            audio.src = '';
+
+            // Remove from DOM
+            if (audio.parentNode) {
+              audio.parentNode.removeChild(audio);
+              console.log('🧹 [CLEANUP] Orphaned audio removed from DOM');
+            }
+          } catch (cleanupError) {
+            console.error('🧹 [CLEANUP] Error cleaning orphaned audio:', cleanupError);
+          }
+        }
+      });
+    } catch (error) {
+      console.error('🧹 [CLEANUP] Error during orphaned audio cleanup:', error);
+    }
+  }
+
+  /**
+   * Stop any other background audio that might be playing (from previous loads)
+   */
+  private stopAllOtherBackgrounds(): void {
+    try {
+      // Get all audio elements that might be background noise
+      const allAudioElements = document.querySelectorAll('audio');
+
+      allAudioElements.forEach((audio, index) => {
+        // Check if this looks like background noise (by URL pattern)
+        const isBackgroundNoise = audio.src &&
+          (audio.src.includes('/background-noise/') ||
+           audio.src.includes('background-noise'));
+
+        // But not our current controlled background
+        const isOurCurrentBackground = audio === this.backgroundAudio;
+
+        if (isBackgroundNoise && !isOurCurrentBackground && !audio.paused) {
+          console.log('🛑 [STOP OTHER] Found other background noise playing:', {
+            index,
+            src: audio.src?.substring(0, 50),
+            currentTime: audio.currentTime,
+            paused: audio.paused
+          });
+
+          // Stop this other background
+          try {
+            audio.pause();
+            audio.currentTime = 0;
+            audio.src = '';
+
+            // Remove from DOM and cleanup
+            if (audio.parentNode) {
+              audio.parentNode.removeChild(audio);
+              console.log('🛑 [STOP OTHER] Other background removed from DOM');
+            }
+
+            // Also remove from DeploymentAudioLoader tracking
+            DeploymentAudioLoader.removeAudio(audio);
+          } catch (cleanupError) {
+            console.error('🛑 [STOP OTHER] Error stopping other background:', cleanupError);
+          }
+        }
+      });
+    } catch (error) {
+      console.error('🛑 [STOP OTHER] Error stopping other backgrounds:', error);
     }
   }
 

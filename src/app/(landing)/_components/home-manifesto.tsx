@@ -34,8 +34,8 @@ export function HomeManifesto() {
 							onClick={() => handleItemClick(index)}
 							className={`text-lg transition-all duration-300 md:text-xl ${
 								isActive
-									? "font-bold text-[#FF7043]"
-									: "text-gray-500 hover:text-gray-300"
+									? "font-bold text-[#FF7043] scale-110"
+									: "text-gray-500 hover:text-[#FF7043] hover:scale-105"
 							}`}
 							aria-label={`View manifesto point ${index + 1}`}
 						>
@@ -48,9 +48,9 @@ export function HomeManifesto() {
 	};
 
 	return (
-		<div className="w-full bg-white py-16 md:py-24">
+		<div className="w-full bg-gradient-to-b from-white to-orange-50 py-16 md:py-24">
 			<div className="container relative mx-auto flex h-[500px] max-w-5xl flex-col px-4 md:h-[600px] md:px-8">
-				<h2 className="mb-8 text-center font-bold text-4xl text-[#6B4F2B] md:text-5xl">
+				<h2 className="mb-8 text-center font-bold text-4xl text-[#6B4F2B] md:text-5xl font-tt-drugs bg-gradient-to-r from-[#6B4F2B] to-[#8B6F4B] bg-clip-text text-transparent">
 					Our Manifesto
 				</h2>
 				<div className="flex h-full flex-col justify-between">
@@ -63,21 +63,24 @@ export function HomeManifesto() {
 							animate={{ opacity: 1, y: 0 }}
 							exit={{ opacity: 0, y: -20 }}
 							transition={{ duration: 0.4 }}
-							className="mt-6"
+							className="mt-6 rounded-xl bg-white p-6 shadow-sm"
 						>
 							<div className="flex items-start gap-4">
 								{manifestoItems[activeIndex]?.icon &&
 									(() => {
 										const Icon = manifestoItems[activeIndex].icon;
 										return (
-											<div className="flex-shrink-0 rounded-full bg-[#FF7043]/10 p-3">
-												<Icon className="h-8 w-8 text-[#FF7043]" />
-											</div>
+											<motion.div
+												className="flex-shrink-0 rounded-full bg-[#FF7043]/10 p-3"
+												whileHover={{ scale: 1.1, rotate: 5 }}
+											>
+												<Icon className="h-8 w-8 text-[#FF7043]" strokeWidth={1.75} />
+											</motion.div>
 										);
 									})()}
 								<div>
 									<div className="font-medium text-[#FF7043] text-sm" />
-									<h3 className="mb-4 font-bold text-3xl text-[#6B4F2B] md:text-4xl lg:text-5xl">
+									<h3 className="mb-4 font-bold text-3xl text-[#6B4F2B] md:text-4xl lg:text-5xl font-tt-drugs">
 										{manifestoItems[activeIndex]?.title || ""}
 									</h3>
 									<p className="max-w-3xl whitespace-pre-line text-[#6B4F2B]/80 text-lg md:text-xl">

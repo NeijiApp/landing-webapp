@@ -14,7 +14,7 @@ export default function Manifesto() {
 	const parallaxY = useTransform(
 		scrollYProgress,
 		[0, 1],
-		[0, isMobile ? -40 : -80],
+		[0, isMobile ? -60 : -120],
 	);
 
 	const rotate = useTransform(scrollYProgress, [0, 1], [-15, 15]);
@@ -24,7 +24,7 @@ export default function Manifesto() {
 	}, []);
 
 	return (
-		<div className="relative min-h-screen overflow-hidden bg-white">
+		<div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-white to-orange-50">
 			{/* Texture animée (desktop only) */}
 			{!isMobile && (
 				<motion.div
@@ -41,15 +41,15 @@ export default function Manifesto() {
 				className={`${isMobile ? "px-4 pt-16" : "px-6 pt-32"} mx-auto max-w-5xl text-center`}
 			>
 				<h1
-					className={`${isMobile ? "text-4xl" : "text-6xl"} mb-4 bg-clip-text font-bold text-[#FF7043]/90`}
+					className={`${isMobile ? "text-4xl" : "text-6xl"} mb-4 font-bold font-tt-drugs bg-gradient-to-r from-[#FF7043] to-[#FF4D4D] bg-clip-text text-transparent`}
 				>
 					Neiji's Manifesto
 				</h1>
 				<motion.p
-					initial={{ opacity: 0 }}
-					whileInView={{ opacity: 1 }}
-					transition={{ delay: 0.3 }}
-					className={`${isMobile ? "text-xl" : "text-2xl"} mb-12 font-medium text-[#FF7043]`}
+					initial={{ opacity: 0, y: 20 }}
+					whileInView={{ opacity: 1, y: 0 }}
+					transition={{ delay: 0.3, duration: 0.8 }}
+					className={`${isMobile ? "text-xl" : "text-2xl"} mb-12 font-medium text-[#FF7043] font-tt-drugs`}
 				>
 					7 Key Ideas to empower Gen-Z
 				</motion.p>

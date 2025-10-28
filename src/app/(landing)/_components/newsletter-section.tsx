@@ -4,6 +4,7 @@ import type React from "react";
 import { useState } from "react";
 import { api } from "~/trpc/react";
 import { StatePopup } from "./state-popup";
+import { motion } from "framer-motion";
 
 export function NewsletterSection() {
 	const [email, setEmail] = useState("");
@@ -25,10 +26,10 @@ export function NewsletterSection() {
 
 	return (
 		<div>
-			<section id="newsletter" className="bg-orange-50 py-20">
+			<section id="newsletter" className="bg-gradient-to-b from-orange-100 to-orange-50 py-20">
 				<div className="container mx-auto px-6">
 					<div className="mx-auto max-w-md text-center">
-						<h2 className="mb-6 font-bold text-3xl">
+						<h2 className="mb-6 font-bold text-3xl font-tt-drugs bg-gradient-to-r from-gray-900 to-orange-500 bg-clip-text text-transparent">
 							Stay Connected with Neiji
 						</h2>
 						<p className="mb-8 text-gray-600">
@@ -56,7 +57,10 @@ export function NewsletterSection() {
 								);
 							}}
 						>
-							<input
+							<motion.input
+								initial={{ opacity: 0, x: -20 }}
+								whileInView={{ opacity: 1, x: 0 }}
+								transition={{ duration: 0.5 }}
 								id="email"
 								type="email"
 								value={email}
@@ -65,7 +69,11 @@ export function NewsletterSection() {
 								className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-transparent focus:ring-2 focus:ring-orange-500"
 								required
 							/>
-							<button
+							<motion.button
+								initial={{ opacity: 0, x: 20 }}
+								whileInView={{ opacity: 1, x: 0 }}
+								transition={{ duration: 0.5, delay: 0.1 }}
+								whileHover={{ scale: 1.02 }}
 								type="submit"
 								disabled={status === "loading"}
 								className="w-full rounded-lg bg-orange-500 px-6 py-3 text-white transition hover:bg-orange-600 disabled:opacity-50"
@@ -73,7 +81,7 @@ export function NewsletterSection() {
 								{status === "loading"
 									? "Subscribing..."
 									: "Subscribe"}
-							</button>
+							</motion.button>
 							<StatePopup
 								isOpen={isPopupOpen}
 								onClose={handleClosePopup}

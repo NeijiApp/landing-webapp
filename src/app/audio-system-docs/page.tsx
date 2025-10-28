@@ -29,36 +29,38 @@ export default function AudioSystemDocumentation() {
         {/* Current Bug Analysis */}
         <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8">
           <h2 className="text-xl font-semibold text-green-800 mb-4">
-            ✅ FIXED: Double Audio Track Issue
+            ✅ FIXED: Double Audio Track Issue (Root Cause Resolved)
           </h2>
           <div className="space-y-4 text-green-700">
             <div>
-              <h3 className="font-semibold">Problem Resolution:</h3>
+              <h3 className="font-semibold">Root Cause Identified & Fixed:</h3>
               <p>
-                The double audio track issue has been fixed with a comprehensive architecture
-                overhaul. The system is now TRULY EXCLUSIVE - only one background noise can
-                play at a time.
+                The double audio track bug occurred ONLY when changing background noise while
+                meditation was playing. The issue was that <strong>loadBackgroundNoise()</strong>
+                had auto-start logic that would start the NEW background immediately if meditation
+                was playing, while the OLD background wasn't completely cleaned up.
               </p>
             </div>
 
             <div>
-              <h3 className="font-semibold">What Was Fixed:</h3>
+              <h3 className="font-semibold">Critical Fix Applied:</h3>
               <ul className="list-disc list-inside space-y-1">
-                <li>✅ Exclusive background noise loading</li>
-                <li>✅ Proper cleanup of old audio before loading new</li>
-                <li>✅ Absolute URL construction for deployment compatibility</li>
-                <li>✅ Unified audio loading system (meditation + background)</li>
-                <li>✅ Enhanced error handling and logging</li>
+                <li>✅ <strong>NO AUTO-START</strong> during background change</li>
+                <li>✅ Complete cleanup of old audio elements from DOM</li>
+                <li>✅ Orphaned audio detection and cleanup</li>
+                <li>✅ Explicit start only via <code>startBackgroundNoise()</code></li>
+                <li>✅ Enhanced pause verification and force cleanup</li>
               </ul>
             </div>
 
             <div>
-              <h3 className="font-semibold">Key Changes:</h3>
+              <h3 className="font-semibold">Architecture Changes:</h3>
               <ul className="list-disc list-inside space-y-1">
-                <li><strong>DeploymentAudioLoader:</strong> Centralized audio element tracking and cleanup</li>
-                <li><strong>SimpleAudioMixer:</strong> Exclusive loading mode with proper state management</li>
-                <li><strong>EnhancedAudioPlayer:</strong> Sequential background noise application</li>
-                <li><strong>URL Management:</strong> Absolute URL construction for deployment</li>
+                <li><strong>loadBackgroundNoise():</strong> Load only, no auto-start</li>
+                <li><strong>startBackgroundNoise():</strong> Explicit start with cleanup</li>
+                <li><strong>cleanupOrphanedAudioElements():</strong> DOM cleanup of stray audio</li>
+                <li><strong>stopAllOtherBackgrounds():</strong> Stop competing backgrounds</li>
+                <li><strong>forceStopAllBackgroundNoise():</strong> Emergency cleanup</li>
               </ul>
             </div>
           </div>
@@ -225,6 +227,7 @@ export default function AudioSystemDocumentation() {
               <div className="text-sm space-y-1">
                 <div><strong>Check current state:</strong> <code>debugAudioMixer()</code></div>
                 <div><strong>Clean orphaned audio:</strong> <code>cleanupOrphanedAudio()</code></div>
+                <div><strong>Force stop all backgrounds:</strong> <code>forceStopAllBackgrounds()</code></div>
                 <div><strong>Check active count:</strong> <code>DeploymentAudioLoader.getActiveAudioCount()</code></div>
                 <div><strong>Check URL construction:</strong> <code>getAbsoluteAudioUrl('/background-noise/ocean-waves.mp3')</code></div>
                 <div><strong>Force cleanup all:</strong> <code>DeploymentAudioLoader.cleanupAllAudio()</code></div>
@@ -237,7 +240,9 @@ export default function AudioSystemDocumentation() {
         <div className="text-center text-gray-500 text-sm mt-8">
           Documentation updated: {new Date().toLocaleString()}
           <br />
-          <span className="text-green-600 font-semibold">✅ DOUBLE AUDIO BUG FIXED</span>
+          <span className="text-green-600 font-semibold">✅ DOUBLE AUDIO ROOT CAUSE FIXED</span>
+          <br />
+          <span className="text-sm">No auto-start during background change + complete cleanup</span>
         </div>
       </div>
     </div>

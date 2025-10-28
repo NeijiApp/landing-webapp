@@ -29,8 +29,10 @@ export class DeploymentAudioLoader {
    * Build absolute URL for deployment compatibility
    */
   private static buildAbsoluteUrl(audioUrl: string): string {
-    // If already absolute, return as is
-    if (audioUrl.startsWith('http://') || audioUrl.startsWith('https://')) {
+    // If already absolute (including blob URLs), return as is
+    if (audioUrl.startsWith('http://') || 
+        audioUrl.startsWith('https://') || 
+        audioUrl.startsWith('blob:')) {
       return audioUrl;
     }
 
@@ -149,11 +151,30 @@ export class DeploymentAudioLoader {
    */
   private static cleanupAudio(audio: HTMLAudioElement): void {
     try {
+      console.log('🧹 [DeploymentAudioLoader] Cleaning up audio element:', audio.src?.substring(0, 50));
+
       audio.pause();
       audio.currentTime = 0;
+
+      // Clear the source completely
       audio.src = '';
       audio.load(); // Force clear the buffer
+
+      // Remove from DOM if it's in the DOM
+      if (audio.parentNode) {
+        audio.parentNode.removeChild(audio);
+        console.log('🧹 [DeploymentAudioLoader] Audio element removed from DOM');
+      }
+
+      // Clear all event listeners by cloning the element
+      const newAudio = audio.cloneNode() as HTMLAudioElement;
+      if (audio.parentNode && newAudio) {
+        audio.parentNode.replaceChild(newAudio, audio);
+        console.log('🧹 [DeploymentAudioLoader] Audio element replaced with clean clone');
+      }
+
       this.activeAudioElements.delete(audio);
+      console.log('🧹 [DeploymentAudioLoader] Audio cleanup completed');
     } catch (error) {
       console.error('🧹 [DeploymentAudioLoader] Error cleaning audio:', error);
     }
@@ -163,6 +184,7 @@ export class DeploymentAudioLoader {
    * Remove a specific audio element from tracking (public method)
    */
   static removeAudio(audio: HTMLAudioElement): void {
+    console.log('🧹 [DeploymentAudioLoader] Removing audio from tracking:', audio.src?.substring(0, 50));
     this.cleanupAudio(audio);
   }
 

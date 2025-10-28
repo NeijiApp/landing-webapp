@@ -7,7 +7,7 @@ import { NewsletterSection } from "./_components/newsletter-section";
 
 export default function Homepage() {
 	return (
-		<div className="min-h-screen">
+		<div className="min-h-screen bg-gradient-to-b from-white to-orange-50">
 			<main>
 				<section id="manga">
 					<Hero />

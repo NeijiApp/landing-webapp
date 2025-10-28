@@ -24,59 +24,52 @@ export function Item({
 			whileInView={{ opacity: 1, y: 0 }}
 			viewport={{ once: true, margin: isMobile ? "0px" : "-25% 0px" }}
 			transition={{ duration: 0.6, delay: index * 0.1 }}
-			className="relative"
+			className="relative rounded-xl border border-orange-100 bg-white p-6 shadow-sm hover:shadow-md transition-shadow duration-300 bg-gradient-to-br from-orange-50/50 to-white"
 		>
+			{/* Update the layout structure */}
 			<div
-				className={`flex ${isMobile ? "flex-col items-start" : "items-center"} gap-1`}
+				className={`flex ${isMobile ? "flex-col" : "flex-row"} items-start gap-6`}
 			>
-				{/* Icon container with connection line */}
-				<div className={`relative ${isMobile ? "mb-4" : ""}`}>
-					{!isMobile ? (
-						<div className="-top-2 absolute left-6 font-bold text-4xl text-[#6B4F2B]">
-							{itemNumber}
-						</div>
-					) : null}
-					<motion.div
-						whileHover={{ scale: 1.1, rotate: 12 }}
-						transition={{ type: "spring", stiffness: 300 }}
-					>
-						<Icon
-							className={`${
-								isMobile ? "ml-4 h-12 w-12" : "h-40 w-20"
-							} text-[#FF7043] opacity-90 transition-all duration-300`}
-							strokeWidth={1.5}
-						/>
-					</motion.div>
-
-					{/* Animated connection line */}
-					{
-						<motion.div
-							initial={{ scale: 0 }}
-							whileInView={{ scale: 1 }}
-							transition={{ delay: 0.3, duration: 0.4 }}
-							className={`absolute ${
-								isMobile
-									? "-translate-y-1/2 top-14 left-4 h-0.5 w-14 bg-[#FF7043]/50"
-									: "-right-5 -translate-x-full top-12 h-20 w-0.5 bg-[#FF7043]/60"
-							}`}
-						/>
-					}
-				</div>
+				{/* Icon container */}
+				<motion.div
+					className={`relative ${isMobile ? "self-center mb-4" : "flex-shrink-0"} mt-0.5 md:mt-1`}
+					whileHover={{ scale: 1.1, rotate: 12, boxShadow: "0 4px 20px rgba(255,112,67,0.3)" }}
+					transition={{ type: "spring", stiffness: 300 }}
+				>
+					<Icon
+						className={`${
+							isMobile ? "h-6 w-6" : "h-10 w-10"
+						} text-[#FF7043] opacity-90 transition-all duration-300`}
+						strokeWidth={1.75}
+					/>
+				</motion.div>
 
 				{/* Text content */}
-				<div className={`${isMobile ? "pr-4 pl-4" : "pl-8"} flex-1`}>
+				<div className="flex-1">
 					<motion.h2
-						whileHover={{ x: isMobile ? 0 : -8 }}
+						whileHover={{ scale: 1.02 }}
+						transition={{ type: "spring", stiffness: 300 }}
 						className={`${
 							isMobile ? "text-3xl" : "text-4xl"
-						} mb-4 font-bold text-[#6B4F2B]`}
+						} mb-4 font-bold text-[#6B4F2B] font-tt-drugs flex items-baseline gap-2`}
 					>
-						{isMobile ? `${itemNumber} ${title}` : title}
+						<span className="text-2xl">{itemNumber}</span>
+						{title}
 					</motion.h2>
 
+					{/* Animated connection line as horizontal divider */}
+					<motion.div
+						initial={{ scaleX: 0 }}
+						whileInView={{ scaleX: 1 }}
+						transition={{ delay: 0.3, duration: 0.4 }}
+						className="h-0.5 bg-[#FF7043]/50 mb-4"
+					/>
+
 					<motion.p
-						initial={{ opacity: isMobile ? 1 : 0.8 }}
-						whileHover={isMobile ? {} : { opacity: 1 }}
+						initial={{ opacity: isMobile ? 1 : 0.8, y: 10 }}
+						whileInView={{ opacity: 1, y: 0 }}
+						whileHover={isMobile ? {} : { opacity: 1, scale: 1.01 }}
+						transition={{ duration: 0.5 }}
 						className={`text-[#6B4F2B] ${
 							isMobile ? "text-base" : "text-lg"
 						} leading-relaxed`}
