@@ -21,9 +21,45 @@ export class DeploymentAudioLoader {
   private static readonly MAX_RETRIES = 3;
   private static readonly RETRY_DELAY = 1000;
   private static readonly LOAD_TIMEOUT = 30000; // 30 seconds
-  
+
   // Track all created audio elements to ensure cleanup
   private static activeAudioElements = new Set<HTMLAudioElement>();
+
+  /**
+   * Build absolute URL for deployment compatibility
+   */
+  private static buildAbsoluteUrl(audioUrl: string): string {
+    // If already absolute, return as is
+    if (audioUrl.startsWith('http://') || audioUrl.startsWith('https://')) {
+      return audioUrl;
+    }
+
+    // For relative URLs, ensure they start with /
+    if (!audioUrl.startsWith('/')) {
+      audioUrl = '/' + audioUrl;
+    }
+
+    // Get base URL from window.location or fallback
+    let baseUrl = '';
+    if (typeof window !== 'undefined') {
+      baseUrl = window.location.origin;
+    } else {
+      // Fallback for SSR - this shouldn't happen for audio loading
+      console.warn('🎵 [DeploymentAudioLoader] buildAbsoluteUrl called in SSR context');
+      return audioUrl;
+    }
+
+    const absoluteUrl = baseUrl + audioUrl;
+    console.log(`🎵 [DeploymentAudioLoader] Built absolute URL: ${audioUrl} -> ${absoluteUrl}`);
+    return absoluteUrl;
+  }
+
+  /**
+   * Public method to build absolute URL (for other components)
+   */
+  static getAbsoluteUrl(audioUrl: string): string {
+    return this.buildAbsoluteUrl(audioUrl);
+  }
 
   /**
    * Load audio with deployment-aware error handling
@@ -134,14 +170,17 @@ export class DeploymentAudioLoader {
    * Single attempt to load audio
    */
   private static async attemptLoad(
-    audioUrl: string, 
+    audioUrl: string,
     options: { loop: boolean; preload: 'none' | 'metadata' | 'auto'; volume: number }
   ): Promise<AudioLoadResult> {
     return new Promise((resolve) => {
       const audio = new Audio();
-      
-      // IMPORTANT: Set source FIRST to avoid loading default URL
-      audio.src = audioUrl;
+
+      // IMPORTANT: Construct absolute URL for deployment compatibility
+      const absoluteUrl = this.buildAbsoluteUrl(audioUrl);
+      console.log(`🎵 [DeploymentAudioLoader] Loading audio from:`, absoluteUrl);
+
+      audio.src = absoluteUrl;
       
       audio.loop = options.loop;
       audio.preload = options.preload;
@@ -205,7 +244,8 @@ export class DeploymentAudioLoader {
       // Error handler
       const handleError = (event: Event) => {
         // Don't log errors about default URL or if already cleaned
-        if (!(audio as any).__cleaned && !audio.src.includes('/chat') && audio.src !== '') {
+        const isDefaultUrl = audio.src === '' || audio.src.includes('/chat') || audio.src === window.location.origin + '/chat';
+        if (!(audio as any).__cleaned && !isDefaultUrl) {
           console.error(`🎵 [DeploymentAudioLoader] Audio error:`, event);
           console.error(`🎵 [DeploymentAudioLoader] Audio error details:`, {
             error: audio.error,

@@ -63,6 +63,9 @@ export function EnhancedAudioPlayerWithNoise({
 		// Expose DeploymentAudioLoader to window for debugging
 		(window as any).DeploymentAudioLoader = DeploymentAudioLoader;
 
+		// Expose utility functions for debugging
+		(window as any).getAbsoluteAudioUrl = (url: string) => DeploymentAudioLoader.getAbsoluteUrl(url);
+
 		// Expose debug function to window for console access
 		(window as any).debugAudioMixer = () => {
 			if (audioMixerRef.current) {
@@ -257,20 +260,30 @@ export function EnhancedAudioPlayerWithNoise({
 				await audioMixerRef.current.loadBackgroundNoise(newState.selectedNoise);
 				console.log('🎵 [APPLY BG] Step 3: New background loaded successfully');
 
-				// Step 4: If meditation is playing, start the new background
-				if (isPlaying) {
-					console.log('🎵 [APPLY BG] Step 4: Meditation playing, starting new background');
+				// Step 4: If meditation is playing, ensure background starts
+				if (isPlaying && audioMixerRef.current) {
+					console.log('🎵 [APPLY BG] Step 4: Meditation playing, ensuring background starts');
 
-					// Force restart the background if it's already loaded but not playing
-					if (audioMixerRef.current && audioMixerRef.current.getState) {
-						const state = audioMixerRef.current.getState();
-						console.log('🎵 [APPLY BG] Current mixer state:', state);
+					// Get current state to check if background should be playing
+					const state = audioMixerRef.current.getState();
+					console.log('🎵 [APPLY BG] Current mixer state:', state);
 
-						// The background should start automatically in loadBackgroundNoise()
-						// but let's ensure it's playing
-						if (state.backgroundVolume > 0) {
-							console.log('🎵 [APPLY BG] Background volume > 0, should be playing');
+					// If background volume > 0 and meditation is playing, background should start
+					if (state.backgroundVolume > 0 && state.isPlaying) {
+						console.log('🎵 [APPLY BG] Conditions met for background to play');
+
+						// Use the mixer's startBackgroundNoise method
+						try {
+							await audioMixerRef.current.startBackgroundNoise();
+							console.log('🎵 [APPLY BG] Background start method called');
+						} catch (error) {
+							console.error('🎵 [APPLY BG] Error starting background noise:', error);
 						}
+					} else {
+						console.log('🎵 [APPLY BG] Conditions not met for background to play:', {
+							backgroundVolume: state.backgroundVolume,
+							isPlaying: state.isPlaying
+						});
 					}
 				} else {
 					console.log('🎵 [APPLY BG] Meditation not playing, background loaded but not started');

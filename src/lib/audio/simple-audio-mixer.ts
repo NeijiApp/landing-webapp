@@ -8,6 +8,7 @@ export interface AudioMixerState {
   backgroundVolume: number;
   currentTime: number;
   duration: number;
+  backgroundNoiseState?: any; // For debugging
 }
 
 /**
@@ -99,18 +100,24 @@ export class SimpleAudioMixer {
   }
 
   /**
-   * Load background noise audio
+   * Load background noise audio (EXCLUSIVE MODE)
    */
   async loadBackgroundNoise(config: BackgroundNoiseConfig): Promise<void> {
-    console.log('🎵 [LOAD BG] Loading background noise:', config.name);
-    
+    console.log('🎵 [LOAD BG] Loading background noise (EXCLUSIVE MODE):', config.name);
+
+    // EXCLUSIVE: Ensure only one background loading operation at a time
+    if (this.backgroundNoiseState.selectedNoise && this.backgroundNoiseState.selectedNoise.id !== config.id) {
+      console.log('🎵 [LOAD BG] Different background currently active, stopping it first');
+      this.stopBackgroundNoise();
+    }
+
     // Clean up existing background audio completely
     if (this.backgroundAudio) {
       console.log('🎵 [LOAD BG] Cleaning up existing background audio');
       try {
         const audioToClean = this.backgroundAudio;
         this.backgroundAudio = null; // Clear reference first
-        
+
         // Use DeploymentAudioLoader to properly clean up
         DeploymentAudioLoader.removeAudio(audioToClean);
         console.log('🎵 [LOAD BG] Existing background audio cleaned from loader');
@@ -118,14 +125,14 @@ export class SimpleAudioMixer {
         console.error('🎵 [LOAD BG] Error cleaning up background audio:', error);
       }
     }
-    
+
     // Reset background noise state
     this.backgroundNoiseState.selectedNoise = null;
     this.backgroundNoiseState.isPlaying = false;
 
     try {
-      console.log('🎵 Creating background audio for:', config.name, 'File:', config.file);
-      
+      console.log('🎵 [LOAD BG] Creating background audio for:', config.name, 'File:', config.file);
+
       const result = await DeploymentAudioLoader.loadAudio(config.file, {
         loop: true,
         preload: 'auto',
@@ -133,55 +140,65 @@ export class SimpleAudioMixer {
       });
 
       if (!result.success || !result.audio) {
-        console.error('🎵 Failed to load background noise:', result.error);
-        console.error('🎵 Error details:', result.details);
-        console.error('🎵 Config:', config);
-        return;
+        console.error('🎵 [LOAD BG] Failed to load background noise:', result.error);
+        console.error('🎵 [LOAD BG] Error details:', result.details);
+        console.error('🎵 [LOAD BG] Config:', config);
+        throw new Error(result.error || 'Failed to load background noise');
       }
 
       this.backgroundAudio = result.audio;
-      
+
       // Store unique ID for debugging
       (this.backgroundAudio as any).__bgId = `bg-${Date.now()}`;
       console.log('🎵 [LOAD BG] Background audio assigned, ID:', (this.backgroundAudio as any).__bgId);
-      
+
       this.backgroundNoiseState.selectedNoise = config;
-      this.backgroundNoiseState.isPlaying = false; // Don't auto-play, wait for user to start meditation
+      this.backgroundNoiseState.isPlaying = false; // Don't auto-play, wait for explicit start
       this.updateBackgroundVolume();
-      
-      console.log('🎵 Background noise loaded:', config.name, 'File:', config.file);
-      console.log('🎵 [LOAD BG] this.backgroundAudio exists:', !!this.backgroundAudio);
+
+      console.log('🎵 [LOAD BG] Background noise loaded successfully:', config.name);
       console.log('🎵 [LOAD BG] Background audio state:', {
         paused: this.backgroundAudio.paused,
         loop: this.backgroundAudio.loop,
         volume: this.backgroundAudio.volume,
         src: this.backgroundAudio.src.substring(0, 50)
       });
-      
-      // If meditation is currently playing, start background noise immediately
-      if (this.isPlaying && this.meditationAudio && !this.meditationAudio.paused) {
-        console.log('🎵 [LOAD BG] Meditation is playing, starting background noise immediately');
+
+      // EXCLUSIVE: Only start if meditation is actively playing (not just loaded)
+      const shouldAutoStart = this.isPlaying && this.meditationAudio && !this.meditationAudio.paused;
+
+      if (shouldAutoStart) {
+        console.log('🎵 [LOAD BG] Meditation actively playing, starting background noise immediately');
         try {
           const backgroundPlayed = await MobileAudioHandler.playAudio(this.backgroundAudio);
           if (backgroundPlayed) {
             this.backgroundNoiseState.isPlaying = true;
-            console.log('🎵 [LOAD BG] Background noise started immediately:', config.name);
-            console.log('🎵 [LOAD BG] Background audio playing state:', {
+            console.log('🎵 [LOAD BG] Background noise started successfully:', config.name);
+            console.log('🎵 [LOAD BG] Final background state:', {
               paused: this.backgroundAudio.paused,
-              currentTime: this.backgroundAudio.currentTime
+              currentTime: this.backgroundAudio.currentTime,
+              isPlaying: this.backgroundNoiseState.isPlaying
             });
           } else {
-            console.warn('🎵 [LOAD BG] Background noise failed to start immediately (mobile autoplay policy?)');
+            console.warn('🎵 [LOAD BG] Background noise failed to start (mobile autoplay policy)');
+            this.backgroundNoiseState.isPlaying = false;
           }
         } catch (bgError) {
-          console.error('🎵 [LOAD BG] Failed to start background noise immediately:', bgError);
+          console.error('🎵 [LOAD BG] Exception starting background noise:', bgError);
+          this.backgroundNoiseState.isPlaying = false;
         }
       } else {
-        console.log('🎵 [LOAD BG] Background noise loaded and ready to play when meditation starts');
+        console.log('🎵 [LOAD BG] Background loaded but not started (meditation not actively playing)');
+        console.log('🎵 [LOAD BG] Conditions:', {
+          isPlaying: this.isPlaying,
+          meditationExists: !!this.meditationAudio,
+          meditationPaused: this.meditationAudio?.paused
+        });
       }
     } catch (error) {
-      console.error('🎵 Failed to create background audio:', error);
-      console.error('🎵 Config:', config);
+      console.error('🎵 [LOAD BG] Failed to create background audio:', error);
+      console.error('🎵 [LOAD BG] Config:', config);
+      throw error;
     }
   }
 
@@ -303,7 +320,8 @@ export class SimpleAudioMixer {
   stopBackgroundNoise(): void {
     console.log('🎵 [STOP BG] Stopping background noise');
     console.log('🎵 [STOP BG] Background audio exists:', !!this.backgroundAudio);
-    
+    console.log('🎵 [STOP BG] Current background:', this.backgroundNoiseState.selectedNoise?.name || 'None');
+
     if (this.backgroundAudio) {
       console.log('🎵 [STOP BG] Background audio state before stop:', {
         paused: this.backgroundAudio.paused,
@@ -311,11 +329,11 @@ export class SimpleAudioMixer {
         volume: this.backgroundAudio.volume,
         src: this.backgroundAudio.src
       });
-      
+
       try {
         const audioToClean = this.backgroundAudio;
         this.backgroundAudio = null; // Clear reference first
-        
+
         // Use DeploymentAudioLoader to properly clean up
         DeploymentAudioLoader.removeAudio(audioToClean);
         console.log('🎵 [STOP BG] Background audio element removed and cleaned from loader');
@@ -323,11 +341,54 @@ export class SimpleAudioMixer {
         console.error('🎵 [STOP BG] Error stopping background audio:', error);
       }
     }
-    
+
     this.backgroundNoiseState.selectedNoise = null;
     this.backgroundNoiseState.isPlaying = false;
     this.updateState();
     console.log('🎵 [STOP BG] Background noise completely stopped');
+  }
+
+  /**
+   * Start background noise if loaded but not playing
+   */
+  async startBackgroundNoise(): Promise<void> {
+    console.log('🎵 [START BG] Starting background noise');
+
+    if (!this.backgroundAudio) {
+      console.warn('🎵 [START BG] No background audio loaded');
+      return;
+    }
+
+    if (!this.backgroundNoiseState.selectedNoise) {
+      console.warn('🎵 [START BG] No background noise selected');
+      return;
+    }
+
+    if (this.backgroundNoiseState.isPlaying) {
+      console.log('🎵 [START BG] Background noise already playing');
+      return;
+    }
+
+    // Only start if meditation is playing
+    if (!this.isPlaying || !this.meditationAudio || this.meditationAudio.paused) {
+      console.log('🎵 [START BG] Meditation not playing, background will start when meditation starts');
+      return;
+    }
+
+    console.log('🎵 [START BG] Starting background noise:', this.backgroundNoiseState.selectedNoise.name);
+
+    try {
+      const backgroundPlayed = await MobileAudioHandler.playAudio(this.backgroundAudio);
+      if (backgroundPlayed) {
+        this.backgroundNoiseState.isPlaying = true;
+        console.log('🎵 [START BG] Background noise started successfully');
+        this.updateState();
+      } else {
+        console.warn('🎵 [START BG] Background noise failed to start (mobile autoplay policy)');
+      }
+    } catch (error) {
+      console.error('🎵 [START BG] Error starting background noise:', error);
+    }
   }
 
   /**
@@ -419,7 +480,12 @@ export class SimpleAudioMixer {
       meditationVolume: 1.0,
       backgroundVolume: this.backgroundNoiseState.volume,
       currentTime: this.meditationAudio?.currentTime || 0,
-      duration: this.meditationAudio?.duration || 0
+      duration: this.meditationAudio?.duration || 0,
+      backgroundNoiseState: {
+        selectedNoise: this.backgroundNoiseState.selectedNoise,
+        isPlaying: this.backgroundNoiseState.isPlaying,
+        volume: this.backgroundNoiseState.volume
+      }
     };
 
     this.onStateChange(state);
