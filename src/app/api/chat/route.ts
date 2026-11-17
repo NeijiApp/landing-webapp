@@ -11,21 +11,27 @@ import { SYSTEM_PROMPT, USER_INPUT_TOOL } from "./prompts";
 
 type Messages = CoreMessage[] | Omit<Message, "id">[];
 
-const EmailInput = z.object({
-	type: z.literal("email"),
-	placeholder: z.string(),
-});
+const MAX_CHOICES = 3;
 
-export type EmailInputAnnotation = z.infer<typeof EmailInput>;
+const SelectChoice = z.object({
+	label: z.string().describe("Button text, five words at most."),
+	meditation: z
+		.enum(["sleep", "focus", "calm", "morning"])
+		.nullable()
+		.describe(
+			"Goal of the meditation this button starts, or null when the button is a plain answer.",
+		),
+});
 
 const SelectInput = z.object({
 	type: z.literal("select"),
-	choices: z.array(z.string()),
+	choices: z.array(SelectChoice).describe("Two or three choices."),
 });
 
+export type SelectChoiceAnnotation = z.infer<typeof SelectChoice>;
 export type SelectInputAnnotation = z.infer<typeof SelectInput>;
 
-const UserInputParameters = EmailInput;
+const UserInputParameters = SelectInput;
 
 export type UserInputParameters = z.infer<typeof UserInputParameters>;
 
@@ -44,13 +50,19 @@ export async function POST(request: Request) {
 					userinput: tool({
 						parameters: UserInputParameters,
 						description: USER_INPUT_TOOL,
-						async execute(args, options) {
-							dataStream.writeMessageAnnotation(args);
-							return "done";
+						async execute(args) {
+							const choices = args.choices
+								.filter((choice) => choice.label.trim().length > 0)
+								.slice(0, MAX_CHOICES);
+							// A single button is not a choice: show nothing.
+							if (choices.length < 2) return "No buttons were shown.";
+							dataStream.writeMessageAnnotation({ type: "select", choices });
+							return "The buttons are shown.";
 						},
 					}),
 				},
-				maxSteps: 2,
+				// One step: the reply ends with the buttons, nothing is written after them.
+				maxSteps: 1,
 			});
 
 			result.mergeIntoDataStream(dataStream);

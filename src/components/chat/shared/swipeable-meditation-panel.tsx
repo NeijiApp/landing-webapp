@@ -2,14 +2,15 @@
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { cn } from "~/lib/utils";
-import { MeditationPanel, type MeditationParams, type ParsedOverrides } from "./meditation-panel";
+import { MeditationPanel, type MeditationParams } from "./meditation-panel";
 
 interface SwipeableMeditationPanelProps {
   isOpen: boolean;
   onClose: () => void;
   onGenerate: (params: MeditationParams) => void;
   isGenerating: boolean;
-  parsedOverrides?: ParsedOverrides | null;
+  params: MeditationParams;
+  onParamsChange: React.Dispatch<React.SetStateAction<MeditationParams>>;
 }
 
 type PanelState = "closed" | "compact" | "expanded";
@@ -19,7 +20,8 @@ export function SwipeableMeditationPanel({
   onClose,
   onGenerate,
   isGenerating,
-  parsedOverrides,
+  params,
+  onParamsChange,
 }: SwipeableMeditationPanelProps) {
   const [panelState, setPanelState] = useState<PanelState>("closed");
   const [isDragging, setIsDragging] = useState(false);
@@ -36,12 +38,13 @@ export function SwipeableMeditationPanel({
   useEffect(() => {
     if (isOpen) {
       setShouldRender(true);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setIsAnimating(true);
-          setPanelState("compact");
-        });
-      });
+      // A timer, because requestAnimationFrame never fires in a tab that is
+      // not painting, which left the panel mounted at zero height.
+      const timer = setTimeout(() => {
+        setIsAnimating(true);
+        setPanelState("compact");
+      }, 20);
+      return () => clearTimeout(timer);
     } else {
       setIsAnimating(false);
       setPanelState("closed");
@@ -219,7 +222,8 @@ export function SwipeableMeditationPanel({
                   setIsExpanded(!isExpanded);
                   setPanelState(isExpanded ? "compact" : "expanded");
                 }}
-                parsedOverrides={parsedOverrides}
+                params={params}
+                onParamsChange={onParamsChange}
                 onClose={onClose}
               />
             </div>

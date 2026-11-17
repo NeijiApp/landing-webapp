@@ -1,36 +1,42 @@
 "use client";
 
-import { Ban, Brain, SendHorizonal, Sparkles, User, Loader2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Brain, SendHorizonal, Square, User } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
 import { EnhancedDrawer } from "./enhanced-drawer";
 import { MeditationDrawer } from "./meditation-drawer";
 import { SwipeableMeditationPanel } from "./swipeable-meditation-panel";
-import { type MeditationParams, type ParsedOverrides } from "./meditation-panel";
-import { useChatState, useDrawer } from "./unified-provider";
+import { DEFAULT_MEDITATION_PARAMS, type MeditationParams } from "./meditation-panel";
+import { describeRequest, useChatState, useDrawer } from "./unified-provider";
 
 interface EnhancedChatInputProps {
-  onChatFocus?: (() => void) | undefined;
   isAuthenticated?: boolean;
 }
 
-export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: EnhancedChatInputProps) {
+/** Reads "10 min" or "3 minutes" from a typed request. */
+function durationFromText(text: string): number | undefined {
+  const match = /(\d{1,2})\s*(?:-\s*)?min/i.exec(text);
+  if (!match?.[1]) return undefined;
+  const minutes = Number(match[1]);
+  return minutes >= 1 && minutes <= 30 ? minutes : undefined;
+}
+
+export function EnhancedChatInput({ isAuthenticated = false }: EnhancedChatInputProps) {
   const {
     chat: { messages, input, handleInputChange, handleSubmit, status, stop, setInput },
+    customMessages,
     meditationMode,
     setMeditationMode,
-    addCustomMessage,
-    updateCustomMessage,
     isGeneratingMeditation,
-    setIsGeneratingMeditation,
+    generateMeditation,
   } = useChatState();
 
-  const [parsedOverrides, setParsedOverrides] = useState<ParsedOverrides | null>(null);
+  // Settings of the Meditation Mode panel. A typed request uses them too.
+  const [panelParams, setPanelParams] = useState<MeditationParams>(DEFAULT_MEDITATION_PARAMS);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const abortControllerRef = useRef<AbortController | null>(null);
 
   const isLoading = useMemo(
     () => status === "streaming" || status === "submitted" || isGeneratingMeditation,
@@ -100,215 +106,31 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
     }
   }, [isMeditationDrawerOpen]);
 
-  const getVoiceId = (gender: "male" | "female"): string => {
-    return gender === "female" ? "rAmra0SCIYOxYmRNDSm3" : "GUDYcgRAONiI1nXDcNQQ";
+  // Panel button: the provider closes the panel, shows the request and generates.
+  const handleMeditationGenerate = (params: MeditationParams) => {
+    generateMeditation(params, describeRequest(params));
   };
 
-  const generatePrompt = (params: MeditationParams): string => {
-    const guidanceInstructions = {
-      beginner: "Provide detailed, step-by-step guidance.",
-      confirmed: "Provide balanced guidance.",
-      expert: "Provide minimal guidance, with long pauses.",
-    } as const;
-    const goalInstructions = {
-      morning: "Create an energizing morning meditation.",
-      focus: "Create a concentration meditation.",
-      calm: "Create a calming meditation.",
-      sleep: "Create a sleep meditation.",
-    } as const;
-    return `Create a ${params.duration}-minute ${params.goal} meditation. ${goalInstructions[params.goal]} ${guidanceInstructions[params.guidance]} Use a ${params.gender} voice.`;
-  };
-
-  const handleCancelMeditation = (loadingId: string) => {
-    // Abort the fetch request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-    
-    // Update the loading message to show cancellation
-    updateCustomMessage(loadingId, {
-      content: "Meditation generation cancelled.",
-      isGeneratingMeditation: false
-    });
-    
-    setIsGeneratingMeditation(false);
-  };
-
-  const handleMeditationGenerate = async (params: MeditationParams) => {
-    setIsGeneratingMeditation(true);
-    const prompt = generatePrompt(params);
-    const voiceId = getVoiceId(params.gender);
-    addCustomMessage({ 
-      id: `user-${Date.now()}`, 
-      content: `Generate: ${params.duration}m, ${params.goal}, ${params.guidance}, ${params.gender}, ${params.background} bg`, 
-      role: "user" 
-    });
-    
-    // Create loading message with animation and cancel callback
-    const loadingId = `loading-${Date.now()}`;
-    addCustomMessage({ 
-      id: loadingId, 
-      content: "Crafting your personalized meditation...", 
-      role: "assistant",
-      isGeneratingMeditation: true,
-      onCancelGeneration: () => handleCancelMeditation(loadingId)
-    });
-    
-    // Create new AbortController for this request
-    abortControllerRef.current = new AbortController();
-    
-    try {
-      const response = await fetch("/api/meditation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          prompt, 
-          duration: params.duration, 
-          voiceId, 
-          gender: params.gender, 
-          background: params.background, 
-          guidance: params.guidance, 
-          goal: params.goal 
-        }),
-        signal: abortControllerRef.current.signal
-      });
-      
-      if (!response.ok) throw new Error(await response.text());
-      
-      const audioBlob = await response.blob();
-      if (audioBlob.size === 0) throw new Error("Received empty audio file");
-      const audioUrl = URL.createObjectURL(audioBlob);
-      
-      // Transform loading message into final message with audio
-      updateCustomMessage(loadingId, {
-        content: "Here is your personalized meditation.",
-        audioUrl,
-        isGeneratingMeditation: false,
-        onCancelGeneration: undefined
-      });
-    } catch (error: any) {
-      // Check if it was cancelled
-      if (error.name === 'AbortError') {
-        console.log("Meditation generation cancelled by user");
-        return; // Don't update message, handleCancelMeditation already did
-      }
-      
-      console.error("Error generating meditation:", error);
-      
-      // Transform loading message into error message
-      updateCustomMessage(loadingId, {
-        content: "Sorry, I couldn't generate your meditation. Please try again.",
-        isGeneratingMeditation: false,
-        onCancelGeneration: undefined
-      });
-    } finally {
-      setIsGeneratingMeditation(false);
-      abortControllerRef.current = null;
-    }
-  };
-
-  const handleMeditationSubmitFromInput = async (e: React.FormEvent) => {
+  // Typed text while Meditation Mode is on: the sentence becomes the request,
+  // with the panel settings. A duration written in the sentence wins.
+  const handleMeditationSubmitFromInput = (e: React.FormEvent) => {
     e.preventDefault();
     const currentInput = input?.trim() || "";
-    if (!currentInput) return;
-    
+    if (!currentInput || isLoading) return;
+
     setInput("");
-    setIsGeneratingMeditation(true);
-    addCustomMessage({ 
-      id: `user-${Date.now()}`, 
-      content: currentInput, 
-      role: "user" 
-    });
-    
-    // Create loading message with animation and cancel callback
-    const loadingId = `loading-${Date.now()}`;
-    addCustomMessage({ 
-      id: loadingId, 
-      content: "Crafting your personalized meditation...", 
-      role: "assistant",
-      isGeneratingMeditation: true,
-      onCancelGeneration: () => handleCancelMeditation(loadingId)
-    });
-    
-    // Create new AbortController for this request
-    abortControllerRef.current = new AbortController();
-    
-    try {
-      const defaultVoiceId = getVoiceId("female");
-      const response = await fetch("/api/meditation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          prompt: currentInput, 
-          voiceId: defaultVoiceId, 
-          gender: "female", 
-          duration: 5, 
-          background: "silence", 
-          guidance: "confirmed", 
-          goal: "calm" 
-        }),
-        signal: abortControllerRef.current.signal
-      });
-      
-      if (!response.ok) throw new Error(await response.text());
-      
-      // Extract parsing metadata from response headers
-      const overridesHeader = response.headers.get("X-Parsed-Overrides");
-      const confidenceHeader = response.headers.get("X-Parsed-Confidence");
-      const finalParamsHeader = response.headers.get("X-Final-Params");
-      
-      if (overridesHeader && confidenceHeader && finalParamsHeader) {
-        try {
-          const overrides = JSON.parse(overridesHeader);
-          const confidence = parseFloat(confidenceHeader);
-          const finalParams = JSON.parse(finalParamsHeader);
-          
-          setParsedOverrides({
-            overrides,
-            confidence,
-            finalParams,
-          });
-          
-          console.log("✨ Received parsing info:", { overrides, confidence, finalParams });
-        } catch (e) {
-          console.warn("Failed to parse meditation metadata:", e);
-        }
-      }
-      
-      const audioBlob = await response.blob();
-      if (audioBlob.size === 0) throw new Error("Received empty audio file");
-      const audioUrl = URL.createObjectURL(audioBlob);
-      
-      // Transform loading message into final message with audio
-      updateCustomMessage(loadingId, {
-        content: "Here's your meditation based on your prompt.",
-        audioUrl,
-        isGeneratingMeditation: false,
-        onCancelGeneration: undefined
-      });
-    } catch (error: any) {
-      // Check if it was cancelled
-      if (error.name === 'AbortError') {
-        console.log("Meditation generation cancelled by user");
-        return; // Don't update message, handleCancelMeditation already did
-      }
-      
-      console.error("Error generating meditation from prompt:", error);
-      
-      // Transform loading message into error message
-      updateCustomMessage(loadingId, {
-        content: "Sorry, I couldn't generate from your prompt.",
-        isGeneratingMeditation: false,
-        onCancelGeneration: undefined
-      });
-    } finally {
-      setIsGeneratingMeditation(false);
-      abortControllerRef.current = null;
-    }
+    generateMeditation(
+      {
+        ...panelParams,
+        duration: durationFromText(currentInput) ?? panelParams.duration,
+        prompt: currentInput,
+      },
+      currentInput,
+    );
   };
 
   const finalHandleSubmit = meditationMode === "meditation" ? handleMeditationSubmitFromInput : handleSubmit;
+  const hasMessages = messages.length + customMessages.length > 0;
 
   return (
     <>
@@ -326,7 +148,8 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
           onClose={() => setMeditationMode("chat")}
           onGenerate={handleMeditationGenerate}
           isGenerating={isGeneratingMeditation}
-          parsedOverrides={parsedOverrides}
+          params={panelParams}
+          onParamsChange={setPanelParams}
         />
       ) : (
         <MeditationDrawer
@@ -334,7 +157,8 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
           onClose={() => setMeditationMode("chat")}
           onGenerate={handleMeditationGenerate}
           isGenerating={isGeneratingMeditation}
-          parsedOverrides={parsedOverrides}
+          params={panelParams}
+          onParamsChange={setPanelParams}
           keyboardOpen={keyboardOpen}
         />
       )}
@@ -384,7 +208,7 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
           style={{
             willChange: shouldHideChatBar ? "transform, opacity" : "auto",
           }}>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               {/* User Profile Button */}
               {!isAuthenticated && (
                 <Button
@@ -401,6 +225,7 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
                     willChange: shouldHideChatBar ? "transform, opacity" : "transform",
                   }}
                   onClick={handleOpenAuthDrawer}
+                  aria-label="Sign in"
                 >
                   <User className={cn(
                     "transition-all ease-out duration-300",
@@ -413,6 +238,9 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
               <div className="group relative">
                 <Button
                   onClick={handleToggleMeditationDrawer}
+                  aria-label={meditationMode === "meditation" ? "Close Meditation Mode" : "Open Meditation Mode"}
+                  aria-pressed={meditationMode === "meditation"}
+                  type="button"
                   size="icon"
                   variant={meditationMode === "meditation" ? "orange" : "orangeOutline"}
                   className={cn(
@@ -453,14 +281,13 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
                       finalHandleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
                     }
                   }}
-                  onFocus={shouldHideChatBar ? undefined : onChatFocus}
                   placeholder={
                     shouldHideChatBar 
                       ? "" 
                       : meditationMode === "meditation"
-                        ? "Describe your meditation..."
-                        : messages.length === 0
-                          ? "Ask Neiji"
+                        ? "Describe a session"
+                        : !hasMessages
+                          ? "How do you feel?"
                           : "Message"
                   }
                   className={cn(
@@ -475,13 +302,15 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
                       size="icon" 
                       variant="orangeOutline" 
                       onClick={stop} 
+                      aria-label="Stop"
                       className="size-9 rounded-full transition-all duration-300"
                     >
-                      <Loader2 className="size-5 animate-spin" />
+                      <Square className="size-4 animate-pulse fill-current" />
                     </Button>
                   ) : (
                     <Button 
                       type="submit" 
+                      aria-label="Send"
                       size="icon" 
                       variant="orange" 
                       className={cn(
@@ -495,11 +324,7 @@ export function EnhancedChatInput({ onChatFocus, isAuthenticated = false }: Enha
                       }}
                       disabled={!((input ?? "").trim()) || shouldHideChatBar}
                     >
-                      {meditationMode === "meditation" ? (
-                        <Sparkles className="size-5" />
-                      ) : (
-                        <SendHorizonal className="size-5" />
-                      )}
+                      <SendHorizonal className="size-5" />
                     </Button>
                   )}
                 </div>

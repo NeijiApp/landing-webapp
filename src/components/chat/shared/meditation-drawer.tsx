@@ -2,14 +2,15 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { cn } from "~/lib/utils";
-import { MeditationPanel, type MeditationParams, type ParsedOverrides } from "./meditation-panel";
+import { MeditationPanel, type MeditationParams } from "./meditation-panel";
 
 interface MeditationDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onGenerate: (params: MeditationParams) => void;
   isGenerating: boolean;
-  parsedOverrides?: ParsedOverrides | null;
+  params: MeditationParams;
+  onParamsChange: React.Dispatch<React.SetStateAction<MeditationParams>>;
   keyboardOpen?: boolean;
 }
 
@@ -23,7 +24,8 @@ export function MeditationDrawer({
   onClose,
   onGenerate,
   isGenerating,
-  parsedOverrides,
+  params,
+  onParamsChange,
   keyboardOpen = false,
 }: MeditationDrawerProps) {
   const [shouldRender, setShouldRender] = useState(false);
@@ -46,11 +48,12 @@ export function MeditationDrawer({
       // Step 1: Add to DOM
       setShouldRender(true);
       // Step 2: Trigger animation after a brief delay (allows initial render)
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setIsAnimating(true);
-        });
-      });
+      // (a timer, because requestAnimationFrame never fires in a tab that is
+      // not painting, which left the drawer mounted at zero height)
+      const timer = setTimeout(() => {
+        setIsAnimating(true);
+      }, 20);
+      return () => clearTimeout(timer);
     } else {
       // Step 1: Start closing animation
       setIsAnimating(false);
@@ -124,7 +127,8 @@ export function MeditationDrawer({
                 isGenerating={isGenerating}
                 isExpanded={isExpanded}
                 toggleExpand={() => setIsExpanded(!isExpanded)}
-                parsedOverrides={parsedOverrides}
+                params={params}
+                onParamsChange={onParamsChange}
                 onClose={onClose}
               />
             </div>

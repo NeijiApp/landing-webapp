@@ -3,23 +3,32 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "~/lib/utils";
+import type { GenerationStage } from "./bot-message";
+
+const STAGES: { id: GenerationStage; label: string }[] = [
+  { id: "script", label: "Writing your session" },
+  { id: "voice", label: "Recording the voice" },
+  { id: "mix", label: "Mixing the audio" },
+];
 
 interface MeditationLoadingAnimationProps {
   className?: string;
-  message?: string;
+  /** Which step of the generation is running. */
+  stage?: GenerationStage;
   onCancel?: () => void;
 }
 
 /**
- * Breathing circle animation for meditation generation
- * Shows a pulsing, breathing circle with calming colors
+ * Breathing circle shown while a meditation is being made, with the name of
+ * the step that is running.
  */
-export function MeditationLoadingAnimation({ 
+export function MeditationLoadingAnimation({
   className,
-  message = "Crafting your meditation...",
+  stage = "script",
   onCancel
 }: MeditationLoadingAnimationProps) {
   const [dots, setDots] = useState("");
+  const stageIndex = Math.max(0, STAGES.findIndex((s) => s.id === stage));
 
   // Animated dots for text
   useEffect(() => {
@@ -103,9 +112,9 @@ export function MeditationLoadingAnimation({
 
       {/* Loading Text */}
       <div className="flex flex-col items-center gap-2">
-        <p className="text-sm font-medium text-white">
-          {message}
-          <span className="inline-block w-6 text-left">{dots}</span>
+        <p className="text-sm font-medium text-white" role="status">
+          {STAGES[stageIndex]?.label}
+          <span className="inline-block w-6 text-left" aria-hidden="true">{dots}</span>
         </p>
         <div className="relative h-5 w-24 text-xs text-white/70">
           <span 
@@ -135,68 +144,36 @@ export function MeditationLoadingAnimation({
         }
       `}</style>
 
-      {/* Progress indicators - small dots */}
-      <div className="flex gap-2">
-        {[0, 1, 2].map((i) => (
+      {/* One dot per step: done, running, to come */}
+      <div className="flex items-center gap-2" aria-hidden="true">
+        {STAGES.map((item, i) => (
           <div
-            key={i}
-            className="h-1.5 w-1.5 rounded-full bg-orange-300 transition-all duration-1000"
-            style={{
-              opacity: (Date.now() / 1000) % 3 > i ? 1 : 0.3,
-              animation: `pulse ${1.5 + i * 0.2}s ease-in-out infinite`,
-            }}
+            key={item.id}
+            className={cn(
+              "h-1.5 rounded-full transition-all duration-500",
+              i < stageIndex && "w-1.5 bg-white",
+              i === stageIndex && "w-5 animate-pulse bg-white",
+              i > stageIndex && "w-1.5 bg-white/30",
+            )}
           />
         ))}
       </div>
+
+      <p className="max-w-[260px] text-center text-xs leading-relaxed text-white/80">
+        This usually takes less than a minute. Longer sessions can take a little more. You can breathe with the circle while you wait.
+      </p>
 
       {/* Cancel Button - Discrete in top right */}
       {onCancel && (
         <button
           onClick={onCancel}
-          className="absolute top-2 right-2 flex items-center justify-center h-6 w-6 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-all duration-200 hover:scale-110 active:scale-95 group"
-          aria-label="Cancel meditation generation"
+          type="button"
+          className="absolute top-0 right-0 flex items-center justify-center h-9 w-9 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-all duration-200 active:scale-95 group"
+          aria-label="Stop making this meditation"
         >
-          <X className="h-3.5 w-3.5 text-white/60 group-hover:text-white/90 transition-colors" />
+          <X className="h-4 w-4 text-white/70 group-hover:text-white/90 transition-colors" />
         </button>
       )}
     </div>
   );
 }
-
-/**
- * Compact version for inline loading states
- */
-export function MeditationLoadingCompact({ className }: { className?: string }) {
-  const [breathePhase, setBreathePhase] = useState<"inhale" | "exhale">("inhale");
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setBreathePhase((prev) => (prev === "inhale" ? "exhale" : "inhale"));
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className={cn("flex items-center gap-3", className)}>
-      {/* Small breathing circle */}
-      <div className="relative flex items-center justify-center">
-        <div
-          className={cn(
-            "absolute rounded-full bg-orange-400/20 blur-md transition-all duration-[3000ms] ease-in-out",
-            breathePhase === "inhale" ? "h-8 w-8" : "h-6 w-6"
-          )}
-        />
-        <div
-          className={cn(
-            "rounded-full bg-gradient-to-br from-orange-400 to-orange-600 transition-all duration-[3000ms] ease-in-out",
-            breathePhase === "inhale" ? "h-6 w-6" : "h-4 w-4"
-          )}
-        />
-      </div>
-      
-      <span className="text-xs text-orange-600">Generating meditation...</span>
-    </div>
-  );
-}
-
