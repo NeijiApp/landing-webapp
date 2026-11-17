@@ -135,7 +135,7 @@ export function SwipeableMeditationPanel({
   // Optimized panel height calculation with memoization
   const panelHeight = useMemo(() => {
     if (panelState === "closed") return "0px";
-    if (panelState === "compact") return "310px";
+    if (panelState === "compact") return "334px";
     return "min(70dvh, calc(100dvh - 140px))";
   }, [panelState]);
 

@@ -20,7 +20,7 @@ function durationFromText(text: string): number | undefined {
   const match = /(\d{1,2})\s*(?:-\s*)?min/i.exec(text);
   if (!match?.[1]) return undefined;
   const minutes = Number(match[1]);
-  return minutes >= 1 && minutes <= 30 ? minutes : undefined;
+  return minutes >= 1 && minutes <= 15 ? minutes : undefined;
 }
 
 export function EnhancedChatInput({ isAuthenticated = false }: EnhancedChatInputProps) {
@@ -129,7 +129,16 @@ export function EnhancedChatInput({ isAuthenticated = false }: EnhancedChatInput
     );
   };
 
-  const finalHandleSubmit = meditationMode === "meditation" ? handleMeditationSubmitFromInput : handleSubmit;
+  // The field stays focusable while a reply or a session is being made, so
+  // sending is blocked here instead of by disabling it.
+  const finalHandleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    if (isLoading) {
+      e.preventDefault();
+      return;
+    }
+    if (meditationMode === "meditation") handleMeditationSubmitFromInput(e);
+    else handleSubmit(e);
+  };
   const hasMessages = messages.length + customMessages.length > 0;
 
   return (
@@ -147,7 +156,7 @@ export function EnhancedChatInput({ isAuthenticated = false }: EnhancedChatInput
           isOpen={isMeditationDrawerOpen}
           onClose={() => setMeditationMode("chat")}
           onGenerate={handleMeditationGenerate}
-          isGenerating={isGeneratingMeditation}
+          isGenerating={isLoading}
           params={panelParams}
           onParamsChange={setPanelParams}
         />
@@ -156,7 +165,7 @@ export function EnhancedChatInput({ isAuthenticated = false }: EnhancedChatInput
           isOpen={isMeditationDrawerOpen}
           onClose={() => setMeditationMode("chat")}
           onGenerate={handleMeditationGenerate}
-          isGenerating={isGeneratingMeditation}
+          isGenerating={isLoading}
           params={panelParams}
           onParamsChange={setPanelParams}
           keyboardOpen={keyboardOpen}
@@ -271,7 +280,8 @@ export function EnhancedChatInput({ isAuthenticated = false }: EnhancedChatInput
               {/* Input Form - Always accessible */}
               <form onSubmit={finalHandleSubmit} className="relative flex-1">
                 <Input
-                  disabled={isLoading || shouldHideChatBar}
+                  readOnly={isLoading}
+                  disabled={shouldHideChatBar}
                   type="text"
                   value={input ?? ""}
                   onChange={handleInputChange}
@@ -295,7 +305,7 @@ export function EnhancedChatInput({ isAuthenticated = false }: EnhancedChatInput
                     shouldHideChatBar && "cursor-default"
                   )}
                 />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <div className="absolute right-1 top-1/2 -translate-y-1/2">
                   {isLoading ? (
                     <Button 
                       type="button" 
@@ -303,7 +313,7 @@ export function EnhancedChatInput({ isAuthenticated = false }: EnhancedChatInput
                       variant="orangeOutline" 
                       onClick={stop} 
                       aria-label="Stop"
-                      className="size-9 rounded-full transition-all duration-300"
+                      className="size-10 rounded-full transition-all duration-300"
                     >
                       <Square className="size-4 animate-pulse fill-current" />
                     </Button>
@@ -314,7 +324,7 @@ export function EnhancedChatInput({ isAuthenticated = false }: EnhancedChatInput
                       size="icon" 
                       variant="orange" 
                       className={cn(
-                        "size-9 rounded-full transition-all ease-out duration-300",
+                        "size-10 rounded-full transition-all ease-out duration-300",
                         shouldHideChatBar 
                           ? "scale-0 opacity-0 rotate-180 pointer-events-none" 
                           : "scale-100 opacity-100 rotate-0 hover:scale-105 active:scale-95"

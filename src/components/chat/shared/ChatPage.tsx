@@ -117,9 +117,9 @@ function ChatLogic({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
         ref={listRef}
         className={cn(
           "container relative z-0 mx-auto space-y-4 px-4 pt-6 sm:px-6",
-          // The open Meditation Mode panel is 310 px high. Leave room so the
+          // The open Meditation Mode panel is 334 px high. Leave room so the
           // last message, the waiting animation and the player stay above it.
-          panelOpen ? "pb-[350px]" : "pb-40 md:pb-52",
+          panelOpen ? "pb-[374px]" : "pb-40 md:pb-52",
         )}
       >
         {allMessages.length === 0 ? (
@@ -189,8 +189,13 @@ function ChatLogic({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
             ))}
           </div>
         )}
-        {/* Bottom spacer to ensure last message is always visible above chat bar */}
-        <div ref={bottomRef} className="h-8" />
+        {/* Scroll anchor. Its scroll margin equals the bottom padding of the
+            list, so scrolling to it leaves the last message above the chat bar
+            and above the open panel. */}
+        <div
+          ref={bottomRef}
+          className={cn("h-8", panelOpen ? "scroll-mb-[374px]" : "scroll-mb-40 md:scroll-mb-52")}
+        />
       </div>
       <EnhancedChatInput isAuthenticated={isAuthenticated} />
     </Chat>

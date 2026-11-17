@@ -21,14 +21,39 @@ const PUBLIC_ROUTES = [
 /**
  * Rate limiting configuration
  */
-const RATE_LIMITS = {
-  '/api/meditation': { requests: 4, windowMs: 60000 }, // open to visitors without an account, so kept low
-  '/api/chat': { requests: 30, windowMs: 60000 }, // 30 requests per minute
-  default: { requests: 100, windowMs: 60000 }, // 100 requests per minute
-};
+type RateLimit = { requests: number; windowMs: number };
 
-// In-memory rate limit store (use Redis in production)
+const RATE_LIMITS: Record<string, RateLimit[]> = {
+  // Open to visitors without an account and costly, so kept low, with a
+  // second longer window.
+  '/api/meditation': [
+    { requests: 4, windowMs: 60_000 },
+    { requests: 10, windowMs: 3_600_000 },
+  ],
+  '/api/chat': [
+    { requests: 30, windowMs: 60_000 },
+    { requests: 300, windowMs: 3_600_000 },
+  ],
+};
+const DEFAULT_RATE_LIMITS: RateLimit[] = [{ requests: 100, windowMs: 60_000 }];
+
+/**
+ * In-memory store: one per server instance, so these limits are per instance.
+ * A limit shared by all instances needs an external store.
+ */
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_STORE_MAX = 5000;
+
+function purgeExpired(now: number) {
+  for (const [key, record] of rateLimitStore) {
+    if (record.resetTime < now) rateLimitStore.delete(key);
+  }
+  // Still full of live entries: drop the oldest ones (Map keeps insertion order).
+  for (const key of rateLimitStore.keys()) {
+    if (rateLimitStore.size <= RATE_LIMIT_STORE_MAX) break;
+    rateLimitStore.delete(key);
+  }
+}
 
 /**
  * Check if route requires authentication
@@ -41,25 +66,30 @@ function isProtectedRoute(pathname: string): boolean {
  * Check rate limits
  */
 function checkRateLimit(pathname: string, clientId: string): boolean {
-  const limits = RATE_LIMITS[pathname as keyof typeof RATE_LIMITS] || RATE_LIMITS.default;
-  const key = `${clientId}:${pathname}`;
+  const specific = Object.hasOwn(RATE_LIMITS, pathname) ? RATE_LIMITS[pathname] : undefined;
+  const limits = specific ?? DEFAULT_RATE_LIMITS;
+  // Other paths share one bucket per client, so the store does not grow with
+  // the number of distinct URLs.
+  const bucket = specific ? pathname : 'default';
   const now = Date.now();
-  
-  const record = rateLimitStore.get(key);
-  
-  if (!record || record.resetTime < now) {
-    rateLimitStore.set(key, {
-      count: 1,
-      resetTime: now + limits.windowMs,
-    });
-    return true;
-  }
-  
-  if (record.count >= limits.requests) {
+
+  if (rateLimitStore.size > RATE_LIMIT_STORE_MAX) purgeExpired(now);
+
+  const records = limits.map((limit) => {
+    const key = `${clientId}:${bucket}:${limit.windowMs}`;
+    const record = rateLimitStore.get(key);
+    return { key, limit, record: record && record.resetTime >= now ? record : undefined };
+  });
+
+  // Refuse when any window is full, without counting the refused request.
+  if (records.some(({ record, limit }) => record && record.count >= limit.requests)) {
     return false;
   }
-  
-  record.count++;
+
+  for (const { key, limit, record } of records) {
+    if (record) record.count++;
+    else rateLimitStore.set(key, { count: 1, resetTime: now + limit.windowMs });
+  }
   return true;
 }
 
@@ -96,8 +126,8 @@ export async function authMiddleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // Check rate limiting
-  const clientId = request.headers.get('x-forwarded-for') || 
-                   request.headers.get('x-real-ip') || 
+  const clientId = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                   request.headers.get('x-real-ip') ||
                    'unknown';
   if (!checkRateLimit(pathname, clientId)) {
     return NextResponse.json(

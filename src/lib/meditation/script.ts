@@ -4,6 +4,34 @@ import { generationModel } from "~/lib/ai/openai";
 import type { GuidanceLevel } from "./config";
 import { type MeditationPlan, countWords, trimToWordBudget } from "./plan";
 
+/** Longest text sent to the synthesiser for one segment. */
+const MAX_SEGMENT_CHARS = 600;
+
+/** Cuts an over-long segment at the last sentence end before the limit. */
+function capSegmentText(text: string): string {
+	if (text.length <= MAX_SEGMENT_CHARS) return text;
+	const head = text.slice(0, MAX_SEGMENT_CHARS);
+	const sentenceEnd = Math.max(
+		head.lastIndexOf(". "),
+		head.lastIndexOf("? "),
+		head.lastIndexOf("! "),
+	);
+	if (sentenceEnd > MAX_SEGMENT_CHARS / 2) return head.slice(0, sentenceEnd + 1);
+	const wordEnd = head.lastIndexOf(" ");
+	return (wordEnd > 0 ? head.slice(0, wordEnd) : head).trim();
+}
+
+/**
+ * Each segment is one speech request, so the count is bounded whatever the
+ * writer returns. The closing segment is kept.
+ */
+function capSegmentCount<T>(segments: T[], planned: number): T[] {
+	const limit = Math.max(3, Math.ceil(planned * 1.5));
+	if (segments.length <= limit) return segments;
+	const last = segments[segments.length - 1] as T;
+	return [...segments.slice(0, limit - 1), last];
+}
+
 const scriptSchema = z.object({
 	title: z.string(),
 	segments: z
@@ -85,16 +113,20 @@ export async function writeMeditationScript(
 		system: buildSystemPrompt(),
 		prompt: buildUserPrompt(request),
 		maxRetries: 1,
+		// Room for the script, its JSON wrapping and the model's reasoning.
+		maxTokens: request.plan.wordBudget * 3 + 2000,
 		abortSignal,
 	});
 
 	const cleaned = object.segments
 		.map((segment) => ({
 			// Safety net: nothing between brackets may reach the synthesiser.
-			text: segment.text
-				.replace(/\[[^\]]*\]/g, " ")
-				.replace(/\s+/g, " ")
-				.trim(),
+			text: capSegmentText(
+				segment.text
+					.replace(/\[[^\]]*\]/g, " ")
+					.replace(/\s+/g, " ")
+					.trim(),
+			),
 			pauseAfterSec: segment.pauseAfterSec,
 		}))
 		.filter((segment) => segment.text.length > 0);
@@ -103,7 +135,10 @@ export async function writeMeditationScript(
 		throw new Error("The script writer returned an empty script.");
 	}
 
-	const segments = trimToWordBudget(cleaned, request.plan.wordBudget);
+	const segments = trimToWordBudget(
+		capSegmentCount(cleaned, request.plan.segmentCount),
+		request.plan.wordBudget,
+	);
 	return {
 		title: object.title,
 		segments,

@@ -7,13 +7,17 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 const DEFAULT_DURATION_MINUTES = 5;
+// The longest session the Meditation Mode panel offers.
+const MAX_DURATION_MINUTES = 15;
+// A valid body is a 500 character prompt and a few short fields.
+const MAX_BODY_CHARS = 4000;
 
 const meditationSchema = z.object({
 	// An explicit duration is authoritative. Nothing downstream changes it.
-	duration: z.number().min(0.5).max(30).optional(),
+	duration: z.number().min(0.5).max(MAX_DURATION_MINUTES).optional(),
 	prompt: z.string().min(1).max(500),
 	// Accepted for compatibility. The voice is chosen from `gender`.
-	voiceId: z.string().optional(),
+	voiceId: z.string().max(64).optional(),
 	background: z
 		.enum(["silence", "waves", "rain", "focus", "relax"])
 		.optional()
@@ -43,7 +47,7 @@ function durationFromPrompt(prompt: string): number | undefined {
 	const match = /(\d{1,2})\s*(?:-\s*)?min/i.exec(prompt);
 	if (!match?.[1]) return undefined;
 	const minutes = Number(match[1]);
-	return minutes >= 1 && minutes <= 30 ? minutes : undefined;
+	return minutes >= 1 && minutes <= MAX_DURATION_MINUTES ? minutes : undefined;
 }
 
 export async function POST(request: NextRequest) {
@@ -51,7 +55,14 @@ export async function POST(request: NextRequest) {
 
 	let params: z.infer<typeof meditationSchema>;
 	try {
-		params = meditationSchema.parse(await request.json());
+		const raw = await request.text();
+		if (raw.length > MAX_BODY_CHARS) {
+			return NextResponse.json(
+				{ error: "Invalid meditation request", details: "The request body is too large." },
+				{ status: 400 },
+			);
+		}
+		params = meditationSchema.parse(JSON.parse(raw));
 	} catch (error) {
 		return NextResponse.json(
 			{
@@ -110,15 +121,13 @@ export async function POST(request: NextRequest) {
 		console.error("[meditation] generation failed:", error);
 		if (error instanceof AssemblyError) {
 			return NextResponse.json(
-				{ error: "Audio assembly failed", details: error.message },
+				{ error: "Audio assembly failed" },
 				{ status: 502 },
 			);
 		}
+		// The cause is in the server log above. Upstream error text stays there.
 		return NextResponse.json(
-			{
-				error: "Meditation generation failed",
-				details: error instanceof Error ? error.message : "Unknown error",
-			},
+			{ error: "Meditation generation failed" },
 			{ status: 500 },
 		);
 	}

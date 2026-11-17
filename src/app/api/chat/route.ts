@@ -1,6 +1,4 @@
 import {
-	type CoreMessage,
-	type Message,
 	createDataStreamResponse,
 	streamText,
 	tool,
@@ -9,7 +7,27 @@ import { z } from "zod";
 import { chatModel } from "~/lib/ai/openai";
 import { SYSTEM_PROMPT, USER_INPUT_TOOL } from "./prompts";
 
-type Messages = CoreMessage[] | Omit<Message, "id">[];
+/**
+ * What the chat client sends: plain user and assistant turns. Anything else
+ * (system or tool roles, oversized history) is refused before the model runs.
+ */
+const MAX_MESSAGES = 30;
+const MAX_MESSAGE_CHARS = 4000;
+const MAX_BODY_CHARS = 150_000;
+/** Covers the model's reasoning and a reply of two short paragraphs. */
+const MAX_OUTPUT_TOKENS = 1500;
+
+const ChatRequest = z.object({
+	messages: z
+		.array(
+			z.object({
+				role: z.enum(["user", "assistant"]),
+				content: z.string().min(1).max(MAX_MESSAGE_CHARS),
+			}),
+		)
+		.min(1)
+		.max(MAX_MESSAGES),
+});
 
 const MAX_CHOICES = 3;
 
@@ -38,7 +56,14 @@ export type UserInputParameters = z.infer<typeof UserInputParameters>;
 export type PossibleAnnotation = UserInputParameters;
 
 export async function POST(request: Request) {
-	const { messages }: { messages: Messages } = await request.json();
+	let messages: z.infer<typeof ChatRequest>["messages"];
+	try {
+		const raw = await request.text();
+		if (raw.length > MAX_BODY_CHARS) throw new Error("body too large");
+		messages = ChatRequest.parse(JSON.parse(raw)).messages;
+	} catch {
+		return Response.json({ error: "Invalid chat request" }, { status: 400 });
+	}
 
 	return createDataStreamResponse({
 		async execute(dataStream) {
@@ -46,6 +71,8 @@ export async function POST(request: Request) {
 				model: chatModel(),
 				system: SYSTEM_PROMPT,
 				messages,
+				maxTokens: MAX_OUTPUT_TOKENS,
+				abortSignal: request.signal,
 				tools: {
 					userinput: tool({
 						parameters: UserInputParameters,

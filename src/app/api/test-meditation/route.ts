@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json(
 				{
 					error: "Assembly service unavailable",
-					details: `Please ensure the assembly service is running at ${env.ASSEMBLY_SERVICE_URL}.`,
+					details: "The assembly service did not answer its health check.",
 				},
 				{ status: 503 },
 			);

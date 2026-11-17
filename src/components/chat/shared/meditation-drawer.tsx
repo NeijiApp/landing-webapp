@@ -39,7 +39,7 @@ export function MeditationDrawer({
   const drawerHeight = useMemo(() => {
     if (!isAnimating) return "0px";
     if (isExpanded) return "min(70dvh, calc(100dvh - 140px))";
-    return "310px";
+    return "334px";
   }, [isAnimating, isExpanded]);
 
   // Handle rendering and animation state (same pattern as auth drawer)

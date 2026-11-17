@@ -168,7 +168,7 @@ export function MeditationLoadingAnimation({
         <button
           onClick={onCancel}
           type="button"
-          className="absolute top-0 right-0 flex items-center justify-center h-9 w-9 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-all duration-200 active:scale-95 group"
+          className="absolute top-0 right-0 flex items-center justify-center h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-all duration-200 active:scale-95 group"
           aria-label="Stop making this meditation"
         >
           <X className="h-4 w-4 text-white/70 group-hover:text-white/90 transition-colors" />

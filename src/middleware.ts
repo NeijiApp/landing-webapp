@@ -18,8 +18,6 @@ const DEV_ONLY_ROUTES = [
 ];
 
 function isDevOnlyRoute(pathname: string): boolean {
-	// The meditation panel still calls this route in production.
-	if (pathname.startsWith("/api/test-meditation")) return false;
 	return DEV_ONLY_ROUTES.some((route) => pathname.startsWith(route));
 }
 

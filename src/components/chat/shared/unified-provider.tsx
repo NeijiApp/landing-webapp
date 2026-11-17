@@ -406,7 +406,8 @@ export function ChatStateProvider({
 					!m.isGeneratingMeditation,
 			)
 			.slice(-30)
-			.map((m) => ({ role: m.role, content: m.content }));
+			// The chat route rejects longer messages.
+			.map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
 
 		messagesRef.current = [...messagesRef.current, userMessage];
 		setMessages((prev) => [...prev, userMessage]);
@@ -610,7 +611,8 @@ export function ChatStateProvider({
 	) => {
 		// The panel must never sit on top of the waiting animation or the player.
 		setMeditationMode("chat");
-		if (generationRef.current) return;
+		// One thing at a time: a reply that is still streaming must stay last.
+		if (generationRef.current || chatBusyRef.current) return;
 
 		if (userLine) {
 			addCustomMessage({ id: nextId("user"), role: "user", content: userLine });

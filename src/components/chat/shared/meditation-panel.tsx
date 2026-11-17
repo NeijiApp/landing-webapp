@@ -147,7 +147,7 @@ export function MeditationPanel({
 									size="sm"
 									onClick={() => setParams((prev) => ({ ...prev, duration }))}
 									className={cn(
-										"h-9 min-w-[40px] text-xs transition-all duration-200 ease-out hover:scale-105 active:scale-95",
+										"h-10 min-w-[40px] text-xs transition-all duration-200 ease-out hover:scale-105 active:scale-95",
 										selectedClass(params.duration === duration),
 									)}
 								>
@@ -173,7 +173,7 @@ export function MeditationPanel({
 										setParams((prev) => ({ ...prev, gender: gender.value }))
 									}
 									className={cn(
-										"h-9 w-full text-xs transition-all duration-200 ease-out hover:scale-105 active:scale-95",
+										"h-10 w-full text-xs transition-all duration-200 ease-out hover:scale-105 active:scale-95",
 										selectedClass(params.gender === gender.value),
 									)}
 								>
@@ -196,11 +196,13 @@ export function MeditationPanel({
 								<Button
 									variant={params.goal === goal.value ? "default" : "outline"}
 									size="icon"
+									aria-label={goal.label}
+									aria-pressed={params.goal === goal.value}
 									onClick={() =>
 										setParams((prev) => ({ ...prev, goal: goal.value }))
 									}
 									className={cn(
-										"h-9 w-full relative transition-all duration-200 ease-out hover:scale-105 active:scale-95",
+										"h-10 w-full relative transition-all duration-200 ease-out hover:scale-105 active:scale-95",
 										selectedClass(params.goal === goal.value),
 									)}
 								>
@@ -233,7 +235,7 @@ export function MeditationPanel({
 							size="sm"
 							onClick={() => setParams((prev) => ({ ...prev, duration }))}
 							className={cn(
-								"h-8 text-xs transition-all duration-200 ease-out hover:scale-105 active:scale-95",
+								"h-10 text-xs transition-all duration-200 ease-out hover:scale-105 active:scale-95",
 								selectedClass(params.duration === duration),
 							)}
 						>
@@ -259,7 +261,7 @@ export function MeditationPanel({
 								setParams((prev) => ({ ...prev, gender: gender.value }))
 							}
 							className={cn(
-								"h-8 text-xs transition-all duration-200 ease-out hover:scale-105 active:scale-95",
+								"h-10 text-xs transition-all duration-200 ease-out hover:scale-105 active:scale-95",
 								selectedClass(params.gender === gender.value),
 							)}
 						>
@@ -397,7 +399,7 @@ export function MeditationPanel({
 			<div className="w-full h-full flex flex-col">
 				{/* Header */}
 				<div className="flex items-center justify-between border-b border-orange-100/60 p-3 text-center bg-white/0 flex-shrink-0">
-					<div className="w-8" />
+					<div className="w-10" />
 					<h2 className="flex items-center justify-center gap-2 font-bold text-base text-orange-800">
 						<Target className="size-4" />
 						Meditation Mode
@@ -406,7 +408,9 @@ export function MeditationPanel({
 						size="icon"
 						variant="ghost"
 						onClick={toggleExpand}
-						className="text-orange-600 hover:bg-orange-200 w-8 h-8 transition-all duration-200 ease-out"
+						aria-label={isExpanded ? "Show fewer settings" : "Show all settings"}
+						aria-expanded={isExpanded}
+						className="text-orange-600 hover:bg-orange-200 w-10 h-10 transition-all duration-200 ease-out"
 					>
 						{isExpanded ? (
 							<ChevronsDown className="size-4" />
@@ -426,7 +430,7 @@ export function MeditationPanel({
 					<Button
 						onClick={handleGenerate}
 						disabled={isGenerating}
-						className="w-full bg-orange-500 py-2.5 font-medium text-sm text-white hover:bg-orange-600 transition-all duration-200 ease-out hover:scale-105 active:scale-95"
+						className="h-11 w-full bg-orange-500 py-2.5 font-medium text-sm text-white hover:bg-orange-600 transition-all duration-200 ease-out hover:scale-105 active:scale-95"
 						size="default"
 					>
 						{isGenerating ? (
