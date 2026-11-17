@@ -56,8 +56,11 @@ export const TTS_CONFIG = {
 		instructions:
 			"You are guiding a meditation. Speak slowly, in a calm, warm and soft voice. Keep a steady, gentle tone, leave a short breath between sentences, and never sound rushed or cheerful.",
 	},
-	/** TTS_CONCURRENCY. Number of segments synthesised at the same time. */
-	concurrency: env.TTS_CONCURRENCY ?? 5,
+	/**
+	 * TTS_CONCURRENCY. Number of segments synthesised at the same time.
+	 * The ElevenLabs free plan allows 2 parallel requests; raise it on a paid plan.
+	 */
+	concurrency: env.TTS_CONCURRENCY ?? 2,
 } as const;
 
 /** Timing constants used to plan a script before any audio exists. */

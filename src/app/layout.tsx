@@ -16,7 +16,6 @@ export const metadata: Metadata = {
 	},
 	description,
 	alternates: { canonical: "/" },
-	icons: [{ rel: "icon", url: "/favicon.ico" }],
 	openGraph: {
 		title: "Neiji, meditation made for your day",
 		description,

@@ -44,9 +44,10 @@ export const updateSession = async (request: NextRequest) => {
             return NextResponse.redirect(new URL("/auth", request.url));
         }
 
-		// Rediriger vers le tableau de bord si l'utilisateur est connecté et va sur la page d'accueil
-		if (request.nextUrl.pathname === "/" && !user.error) {
-			return NextResponse.redirect(new URL("/protected", request.url));
+		// The bare /protected page was an internal dashboard. Signed-in users
+		// go to their chat; the landing stays reachable for everyone.
+		if (request.nextUrl.pathname === "/protected") {
+			return NextResponse.redirect(new URL("/protected/chat", request.url));
 		}
 
 		return response;

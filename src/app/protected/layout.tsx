@@ -103,7 +103,7 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
 	 */
 	const handleLogoClick = (e: React.MouseEvent) => {
 		e.preventDefault();
-		router.push("/protected");
+		router.push("/");
 		window.scrollTo({
 			top: 0,
 			behavior: "smooth",
@@ -124,7 +124,7 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
 					<div className="flex h-16 items-center justify-between">
 						{/* Logo - Always visible */}
 					<a
-						href="/protected"
+						href="/"
 						onClick={handleLogoClick}
 						className="group flex items-center gap-2 transition-transform hover:scale-[1.02] active:scale-[0.98] sm:gap-3"
 					>
@@ -143,10 +143,10 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
 						{/* Desktop Navigation */}
 						<div className="hidden items-center gap-1 md:flex">
 							<Link
-								href="/protected"
+								href="/"
 								className="rounded-full px-4 py-2 font-medium text-gray-700 text-sm transition-all hover:bg-orange-50 hover:text-orange-600"
 							>
-								Tableau de bord
+								Home
 							</Link>
 							<Link
 								href="/protected/chat"
@@ -197,11 +197,11 @@ export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
 						>
 							<nav className="space-y-1 px-4 py-4">
 								<Link
-									href="/protected"
+									href="/"
 									onClick={() => setIsMenuOpen(false)}
 									className="block rounded-xl px-4 py-3 font-medium text-gray-700 text-sm transition-colors hover:bg-orange-50 hover:text-orange-600"
 								>
-									Tableau de bord
+									Home
 								</Link>
 								<Link
 									href="/protected/chat"
