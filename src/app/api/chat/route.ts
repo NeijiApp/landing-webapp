@@ -1,4 +1,3 @@
-import { openai } from "@ai-sdk/openai";
 import {
 	type CoreMessage,
 	type Message,
@@ -7,6 +6,7 @@ import {
 	tool,
 } from "ai";
 import { z } from "zod";
+import { chatModel } from "~/lib/ai/openai";
 import { SYSTEM_PROMPT, USER_INPUT_TOOL } from "./prompts";
 
 type Messages = CoreMessage[] | Omit<Message, "id">[];
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
 	return createDataStreamResponse({
 		async execute(dataStream) {
 			const result = streamText({
-				model: openai("gpt-4o"),
+				model: chatModel(),
 				system: SYSTEM_PROMPT,
 				messages,
 				tools: {
@@ -54,6 +54,10 @@ export async function POST(request: Request) {
 			});
 
 			result.mergeIntoDataStream(dataStream);
+		},
+		onError(error) {
+			console.error("[api/chat] stream failed:", error);
+			return "An error occurred.";
 		},
 	});
 }
