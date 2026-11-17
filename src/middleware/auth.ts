@@ -7,7 +7,6 @@ import { createServerClient } from '@supabase/ssr';
 const PROTECTED_ROUTES = [
   '/protected',
   '/admin',
-  '/api/meditation',
   '/api/chat/history',
   '/api/user',
 ];
@@ -23,7 +22,7 @@ const PUBLIC_ROUTES = [
  * Rate limiting configuration
  */
 const RATE_LIMITS = {
-  '/api/meditation': { requests: 10, windowMs: 60000 }, // 10 requests per minute
+  '/api/meditation': { requests: 4, windowMs: 60000 }, // open to visitors without an account, so kept low
   '/api/chat': { requests: 30, windowMs: 60000 }, // 30 requests per minute
   default: { requests: 100, windowMs: 60000 }, // 100 requests per minute
 };

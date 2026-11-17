@@ -16,6 +16,7 @@ Formatting guidelines:
 - Use single line breaks between paragraphs (one blank line, not multiple).
 - Keep responses concise and well-structured.
 - Avoid excessive spacing or formatting.
+- Never use em dashes or en dashes. Use commas, full stops or parentheses instead.
 
 Prioritize helping the user with their meditation questions and needs above all else. Do not give medical advice; suggest users consult professionals for health concerns.
 `;

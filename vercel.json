@@ -1,7 +1,7 @@
 {
   "functions": {
     "src/app/api/meditation/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 300
     },
     "src/app/api/debug-meditation/route.ts": {
       "maxDuration": 60
