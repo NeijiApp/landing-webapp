@@ -6,6 +6,8 @@ import "./src/env.js";
 
 /** @type {import("next").NextConfig} */
 const config = {
+	// The dev badge sits on top of the chat bar's left button on mobile.
+	devIndicators: false,
 	typescript: {
 		ignoreBuildErrors: false,
 	},
