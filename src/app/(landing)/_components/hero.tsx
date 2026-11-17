@@ -33,9 +33,6 @@ export function Hero() {
 							Read the manga
 						</Link>
 					</div>
-					<p className="mt-4 text-[#6B4F2B]/60 text-sm">
-						Free to try in your browser, with or without an account.
-					</p>
 				</div>
 				<div className="w-full max-w-md flex-1 lg:max-w-none">
 					<Image

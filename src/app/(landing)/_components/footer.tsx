@@ -10,7 +10,7 @@ const links = [
 
 export function Footer() {
 	return (
-		<footer className="bg-[#3D2C17] py-10 text-orange-50">
+		<footer className="border-orange-50/10 border-t bg-[#3D2C17] py-10 text-orange-50">
 			<div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-5 sm:px-8 md:flex-row md:justify-between">
 				<p className="font-bold font-tt-drugs text-xl">Neiji</p>
 				<nav aria-label="Footer">
