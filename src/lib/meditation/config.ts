@@ -15,22 +15,23 @@ export const TTS_CONFIG = {
 		/** ELEVENLABS_OUTPUT_FORMAT. 192 kbps needs the Creator plan or above. */
 		outputFormat: env.ELEVENLABS_OUTPUT_FORMAT ?? "mp3_44100_128",
 		/**
-		 * The app's Voice Library voices. They need a paid ElevenLabs plan.
+		 * The voices chosen by ear for Neiji (November 2026). Both work on
+		 * every ElevenLabs plan, including the free tier.
 		 * ELEVENLABS_VOICE_FEMALE, ELEVENLABS_VOICE_MALE
 		 */
 		voices: {
 			female: {
-				id: env.ELEVENLABS_VOICE_FEMALE ?? "rAmra0SCIYOxYmRNDSm3",
-				name: "Lana Weiss",
+				id: env.ELEVENLABS_VOICE_FEMALE ?? "SAz9YHcvj6GT2YYXdXww",
+				name: "River",
 			},
 			male: {
-				id: env.ELEVENLABS_VOICE_MALE ?? "GUDYcgRAONiI1nXDcNQQ",
-				name: "Milo",
+				id: env.ELEVENLABS_VOICE_MALE ?? "0wNZ6hM7uPvBndYl7LNf",
+				name: "Male calm resonant",
 			},
 		},
 		/**
-		 * Voices that work on the free tier, used when the API answers
-		 * 402 paid_plan_required for the voices above.
+		 * Used when the voices above are overridden with Voice Library voices
+		 * and the API answers 402 paid_plan_required (free tier account).
 		 * ELEVENLABS_FREE_VOICE_FEMALE, ELEVENLABS_FREE_VOICE_MALE
 		 */
 		freeTierVoices: {
