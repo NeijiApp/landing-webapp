@@ -5,51 +5,50 @@ import {
 	Leaf,
 	Microscope,
 	Rocket,
-	Star,
 	Users,
 } from "lucide-react";
 
 export const manifestoItems = [
 	{
 		icon: Brain,
-		title: "Mental Health Meets Performance",
+		title: "Mental health meets performance",
 		description:
-			"Gen Z is facing a mental health crisis, feeling overstimulated, anxious, and stressed. Trapped in floods of data and empty interactions, we've lost sight of what truly matters. Neiji provides an escape, offering clarity, focus, and calm amid the chaos.",
+			"Gen Z lives overstimulated, anxious and short on attention. Neiji offers a few minutes of clarity and calm each day, and treats that calm as the base of performance.",
 	},
 	{
 		icon: Leaf,
-		title: "Transformation is Accessible to Everyone",
+		title: "Change is built in small steps",
 		description:
-			"Change doesn't require a massive leap. It's built through achievable steps. Mental well-being fuels performance. Like a caterpillar's metamorphosis, it's natural and universal. Science-backed tools unlock your potential.",
+			"Lasting change comes from steps small enough to repeat. A caterpillar becomes a butterfly through a natural process, and people can change the same way with tools grounded in science.",
 	},
 	{
 		icon: Feather,
-		title: "Lowering Friction, Unlocking Growth",
+		title: "Less friction, more growth",
 		description:
-			"New habits can feel overwhelming. Neiji simplifies complexity using behavioral psychology. Our systems eliminate friction. Positive habits become effortless.",
+			"A new habit fails when it asks too much. Neiji uses behavioural psychology to make the first step short and obvious, so that starting costs almost nothing.",
 	},
 	{
 		icon: Clock,
-		title: "Habits as Engines of Long-Term Growth",
+		title: "Habits outlast motivation",
 		description:
-			"Motivation fades, but habits endure. Anchor your growth in daily actions. Small efforts compound over time. Consistency builds lifelong resilience.",
+			"Motivation fades within days. A habit anchored in the day keeps going, and small efforts compound into resilience over the years.",
 	},
 	{
 		icon: Users,
-		title: "Culture Shapes Change",
+		title: "Culture carries change",
 		description:
-			"Shared stories unite and inspire. Neiji crafts connective narratives. Relatable imagery fosters belonging. Together, we grow.",
+			"People change together, through stories they recognise themselves in. Neiji tells its own story as a manga, with characters you can follow and grow with.",
 	},
 	{
 		icon: Microscope,
-		title: "Science as the Only Standard",
+		title: "Science is the standard",
 		description:
-			"Rooted in neuroscience, psychology, and behavior design. No pseudo-science, just proven methods. We deliver measurable growth.",
+			"Every practice in Neiji comes from neuroscience, psychology or behaviour design, and we measure whether it works.",
 	},
 	{
 		icon: Rocket,
-		title: "Ambition Beyond an App",
+		title: "An ambition larger than an app",
 		description:
-			"Not just an app, but a new paradigm. AI, science, and culture redefine growth. We catalyze personal and collective change through purpose, resilience, and impact.",
+			"Neiji brings AI, science and culture together to help a generation build purpose and resilience through daily practice.",
 	},
 ];

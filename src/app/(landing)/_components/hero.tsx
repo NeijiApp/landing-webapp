@@ -1,71 +1,52 @@
-"use client";
-
-import React from "react";
-import { Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
 
 export function Hero() {
 	return (
-		<section className="bg-gradient-to-b from-orange-50 to-orange-100 pt-24 pb-12">
-			<div className="container mx-auto px-6">
-				<div className="flex flex-col items-center gap-12 lg:flex-row">
-					<div className="flex-1 text-center lg:text-left">
-						<motion.h1
-							initial={{ opacity: 0, y: 20 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{ duration: 0.8 }}
-							className="mb-6 pb-2 font-bold text-4xl text-gray-900 lg:text-6xl font-tt-drugs bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent leading-[1.15] md:leading-[1.1]"
+		<section className="bg-gradient-to-b from-orange-50 to-orange-100/70 pt-14 pb-16 sm:pt-20 lg:pb-24">
+			<div className="mx-auto flex max-w-6xl flex-col items-center gap-12 px-5 sm:px-8 lg:flex-row lg:gap-16">
+				<div className="flex-1 text-center lg:text-left">
+					<p className="mb-4 font-semibold text-orange-600 text-sm uppercase tracking-[0.18em]">
+						Grow with Neiji, play with Neiji
+					</p>
+					<h1 className="font-bold font-tt-drugs text-4xl text-[#6B4F2B] leading-[1.1] sm:text-5xl lg:text-6xl">
+						Meditation made for the day you are having
+					</h1>
+					<p className="mx-auto mt-6 max-w-xl text-[#6B4F2B]/80 text-lg leading-relaxed lg:mx-0">
+						Tell Neiji what is on your mind. It writes and voices a guided
+						meditation for that moment, then helps you come back tomorrow
+						until calm becomes a habit.
+					</p>
+					<div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start">
+						<Link
+							href="/chat"
+							className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-orange-500 px-8 py-3.5 font-semibold text-white shadow-sm transition hover:bg-orange-600 active:scale-[0.98] sm:w-auto"
 						>
-							Grow with <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600">Neiji</span>,<br />
-							Play with <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600">Neiji</span>
-						</motion.h1>
-						<motion.p
-							initial={{ opacity: 0, y: 20 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{ duration: 0.8, delay: 0.2 }}
-							className="mb-8 text-gray-600 text-lg"
+							Try Neiji
+							<ArrowRight className="h-4 w-4" aria-hidden />
+						</Link>
+						<Link
+							href="/#story"
+							className="inline-flex w-full items-center justify-center rounded-full border border-orange-300 bg-white/60 px-8 py-3.5 font-semibold text-orange-700 transition hover:bg-white sm:w-auto"
 						>
-							Meet your mindfulness partner. Personalised guidance,
-							science-backed practices, and a journey to transform stress into
-							strength.
-							<br /> Start your building your habit today.
-						</motion.p>
-						<div className="flex flex-col justify-center gap-4 sm:flex-row lg:justify-start">
-							<motion.a
-								href="/chat"
-								whileHover={{ scale: 1.05 }}
-								whileTap={{ scale: 0.95 }}
-								className="flex items-center justify-center gap-2 rounded-full bg-orange-500 px-8 py-3 text-white transition hover:bg-orange-600"
-							>
-								<Sparkles className="h-5 w-5" />
-								Chat with Neiji
-							</motion.a>
-							<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-								<Link
-									href="/manifesto"
-									className="rounded-full border-2 border-orange-500 px-8 py-3 text-center text-orange-500 transition hover:bg-orange-50 inline-block"
-								>
-									Neiji's Manifesto
-								</Link>
-							</motion.div>
-						</div>
+							Read the manga
+						</Link>
 					</div>
-					<motion.div
-						initial={{ opacity: 0, scale: 0.95 }}
-						animate={{ opacity: 1, scale: 1 }}
-						transition={{ duration: 0.8, delay: 0.4 }}
-						className="flex-1"
-					>
-						<Image
-							src="/demo.png"
-							width={765}
-							height={681}
-							alt="Meditation App Preview"
-							className="rounded-3xl shadow-2xl hover:shadow-xl transition-shadow"
-						/>
-					</motion.div>
+					<p className="mt-4 text-[#6B4F2B]/60 text-sm">
+						Free to try in your browser, with or without an account.
+					</p>
+				</div>
+				<div className="w-full max-w-md flex-1 lg:max-w-none">
+					<Image
+						src="/demo.png"
+						width={765}
+						height={681}
+						priority
+						sizes="(max-width: 1024px) 90vw, 560px"
+						alt="Two screens of the Neiji app, a habit path and a personalised meditation player"
+						className="h-auto w-full rounded-3xl shadow-xl"
+					/>
 				</div>
 			</div>
 		</section>

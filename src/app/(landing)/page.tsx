@@ -1,27 +1,27 @@
-import { ContactSection } from "./_components/contact-section";
+import { Footer } from "./_components/footer";
 import { Hero } from "./_components/hero";
 import { HomeManifesto } from "./_components/home-manifesto";
-import { MangaReader } from "./_components/manga-section";
-import { NewsSection } from "./_components/news-section";
+import { HowItWorks } from "./_components/how-it-works";
+import { MangaSection } from "./_components/manga-section";
 import { NewsletterSection } from "./_components/newsletter-section";
 
 export default function Homepage() {
 	return (
-		<div className="min-h-screen bg-gradient-to-b from-white to-orange-50">
+		<>
 			<main>
-				<section id="manga">
-					<Hero />
-				</section>
-				<section id="manifesto">
+				<Hero />
+				<HowItWorks />
+				<div id="story" className="scroll-mt-16">
+					<MangaSection />
+				</div>
+				<div id="manifesto" className="scroll-mt-16">
 					<HomeManifesto />
-				</section>
-				<section id="news">
-					<NewsSection />
-				</section>
-				<section id="newsletter">
+				</div>
+				<div id="newsletter" className="scroll-mt-16">
 					<NewsletterSection />
-				</section>
+				</div>
 			</main>
-		</div>
+			<Footer />
+		</>
 	);
 }

@@ -5,30 +5,38 @@ import type { Metadata } from "next";
 import { TRPCReactProvider } from "~/trpc/react";
 import { GlobalErrorHandler } from "~/components/GlobalErrorHandler";
 
+const description =
+	"Neiji writes and voices a guided meditation for the day you are having, and helps you turn a few calm minutes into a daily habit.";
+
 export const metadata: Metadata = {
-	title: "Neiji",
-	description: "The first meditation avaible to everyone",
-	icons: [{ rel: "icon", url: "/NeijiHeadLogo1.4.png" }],
+	metadataBase: new URL("https://www.neiji.co"),
+	title: {
+		default: "Neiji, meditation made for your day",
+		template: "%s | Neiji",
+	},
+	description,
+	alternates: { canonical: "/" },
+	icons: [{ rel: "icon", url: "/favicon.ico" }],
 	openGraph: {
-		title: "Neiji - Meditation for Everyone",
-		description: "The first meditation avaible to everyone",
+		title: "Neiji, meditation made for your day",
+		description,
 		type: "website",
-		url: "https://neiji.co",
+		url: "https://www.neiji.co",
 		siteName: "Neiji",
 		images: [
 			{
-				url: "/og-image.jpg",
-				width: 1200,
-				height: 630,
-				alt: "Neiji - Meditation App",
+				url: "/OpenGraph.png",
+				width: 1202,
+				height: 820,
+				alt: "Neiji, a personal meditation coach",
 			},
 		],
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "Neiji - Meditation for Everyone",
-		description: "The first meditation avaible to everyone",
-		images: ["/og-image.jpg"],
+		title: "Neiji, meditation made for your day",
+		description,
+		images: ["/OpenGraph.png"],
 	},
 };
 

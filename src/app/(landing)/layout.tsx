@@ -63,7 +63,7 @@ function Header() {
 							Manifesto
 						</Link>
 						<Link
-							href="/ask"
+							href="/chat"
 							className="rounded-full px-4 py-2 font-medium text-gray-700 text-sm transition-all hover:bg-orange-50 hover:text-orange-600"
 						>
 							Chat
@@ -75,10 +75,10 @@ function Header() {
 							Contact
 						</Link>
 						<Link
-							href="/#newsletter"
+							href="/#story"
 							className="rounded-full px-4 py-2 font-medium text-gray-700 text-sm transition-all hover:bg-orange-50 hover:text-orange-600"
 						>
-							Newsletter
+							Manga
 						</Link>
 						<Link
 							href="/chat?signin=true"
@@ -123,7 +123,7 @@ function Header() {
 								Manifesto
 							</Link>
 							<Link
-								href="/ask"
+								href="/chat"
 								onClick={() => setIsMenuOpen(false)}
 								className="block rounded-xl px-4 py-3 font-medium text-gray-700 text-sm transition-colors hover:bg-orange-50 hover:text-orange-600"
 							>
@@ -137,11 +137,11 @@ function Header() {
 								Contact
 							</Link>
 							<Link
-								href="/#newsletter"
+								href="/#story"
 								onClick={() => setIsMenuOpen(false)}
 								className="block rounded-xl px-4 py-3 font-medium text-gray-700 text-sm transition-colors hover:bg-orange-50 hover:text-orange-600"
 							>
-								Newsletter
+								Manga
 							</Link>
 							<Link
 								href="/chat?signin=true"

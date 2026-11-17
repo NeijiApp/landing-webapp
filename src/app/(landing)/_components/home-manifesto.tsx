@@ -1,102 +1,58 @@
-"use client";
-
-import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import Link from "next/link";
 import { manifestoItems } from "../_data/manifestoItems";
 
 export function HomeManifesto() {
-	const [activeIndex, setActiveIndex] = useState(0); // Start with 01 selected
-
-	const handleItemClick = (index: number) => {
-		setActiveIndex(index);
-	};
-
-	// Auto-rotate through manifesto items every 3 seconds
-	useEffect(() => {
-		const interval = setInterval(() => {
-			setActiveIndex((prev) => (prev + 1) % manifestoItems.length);
-		}, 5000);
-		return () => clearInterval(interval);
-	}, []);
-
-	const renderNumberNavigation = () => {
-		return (
-			<div className="mb-8 flex justify-center space-x-4 md:justify-start md:space-x-6">
-				{manifestoItems.map((_, index) => {
-					const number = (index + 1).toString().padStart(2, "0");
-					const isActive = index === activeIndex;
-
-					return (
-						<button
-							// biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-							key={index}
-							type="button"
-							onClick={() => handleItemClick(index)}
-							className={`text-lg transition-all duration-300 md:text-xl ${
-								isActive
-									? "font-bold text-[#FF7043] scale-110"
-									: "text-gray-500 hover:text-[#FF7043] hover:scale-105"
-							}`}
-							aria-label={`View manifesto point ${index + 1}`}
-						>
-							{number}
-						</button>
-					);
-				})}
-			</div>
-		);
-	};
-
 	return (
-		<div className="w-full bg-gradient-to-b from-white to-orange-50 py-16 md:py-24">
-			<div className="container relative mx-auto flex h-[500px] max-w-5xl flex-col px-4 md:h-[600px] md:px-8">
-				<h2 className="mb-8 text-center font-bold text-4xl text-[#6B4F2B] md:text-5xl font-tt-drugs bg-gradient-to-r from-[#6B4F2B] to-[#8B6F4B] bg-clip-text text-transparent">
-					Our Manifesto
-				</h2>
-				<div className="flex h-full flex-col justify-between">
-					{renderNumberNavigation()}
-
-					<AnimatePresence mode="wait">
-						<motion.div
-							key={activeIndex}
-							initial={{ opacity: 0, y: 20 }}
-							animate={{ opacity: 1, y: 0 }}
-							exit={{ opacity: 0, y: -20 }}
-							transition={{ duration: 0.4 }}
-							className="mt-6 rounded-xl bg-white p-6 shadow-sm"
-						>
-							<div className="flex items-start gap-4">
-								{manifestoItems[activeIndex]?.icon &&
-									(() => {
-										const Icon = manifestoItems[activeIndex].icon;
-										return (
-											<motion.div
-												className="flex-shrink-0 rounded-full bg-[#FF7043]/10 p-3"
-												whileHover={{ scale: 1.1, rotate: 5 }}
-											>
-												<Icon className="h-8 w-8 text-[#FF7043]" strokeWidth={1.75} />
-											</motion.div>
-										);
-									})()}
+		<section className="bg-white py-16 sm:py-20">
+			<div className="mx-auto max-w-6xl px-5 sm:px-8">
+				<div className="mx-auto max-w-2xl text-center">
+					<p className="mb-3 font-semibold text-orange-600 text-sm uppercase tracking-[0.18em]">
+						Our thesis
+					</p>
+					<h2 className="font-bold font-tt-drugs text-3xl text-[#6B4F2B] sm:text-4xl">
+						Seven ideas behind Neiji
+					</h2>
+					<p className="mt-4 text-[#6B4F2B]/75 text-lg leading-relaxed">
+						Neiji started from a conviction about how people change. These
+						ideas guide every product decision we make.
+					</p>
+				</div>
+				<ol className="mt-12 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+					{manifestoItems.map((item, index) => {
+						const Icon = item.icon;
+						return (
+							<li key={item.title} className="flex gap-4">
+								<span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-orange-100">
+									<Icon
+										className="h-5 w-5 text-orange-600"
+										strokeWidth={1.75}
+										aria-hidden
+									/>
+								</span>
 								<div>
-									<div className="font-medium text-[#FF7043] text-sm" />
-									<h3 className="mb-4 font-bold text-3xl text-[#6B4F2B] md:text-4xl lg:text-5xl font-tt-drugs">
-										{manifestoItems[activeIndex]?.title || ""}
+									<h3 className="font-semibold text-[#6B4F2B] text-lg leading-snug">
+										<span className="mr-2 text-orange-500">
+											{String(index + 1).padStart(2, "0")}
+										</span>
+										{item.title}
 									</h3>
-									<p className="max-w-3xl whitespace-pre-line text-[#6B4F2B]/80 text-lg md:text-xl">
-										{manifestoItems[activeIndex]?.description || ""}
+									<p className="mt-2 text-[#6B4F2B]/75 leading-relaxed">
+										{item.description}
 									</p>
 								</div>
-							</div>
-						</motion.div>
-					</AnimatePresence>
-
-					{/* Progress indicator - only visible on desktop */}
-					<div className="mt-auto hidden pb-6 md:block">
-						<div className="h-1 w-32 rounded-full bg-[#FF7043]" />
-					</div>
+							</li>
+						);
+					})}
+				</ol>
+				<div className="mt-12 text-center">
+					<Link
+						href="/manifesto"
+						className="inline-flex items-center justify-center rounded-full border border-orange-300 px-7 py-3 font-semibold text-orange-700 transition hover:bg-orange-50"
+					>
+						Read the full manifesto
+					</Link>
 				</div>
 			</div>
-		</div>
+		</section>
 	);
 }
